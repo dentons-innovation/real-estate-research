@@ -1,0 +1,31 @@
+{
+  "name": "dentons-re-research",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Dentons · Real Estate Research (demo) — frontend Mapy Misji + workflow n8n streamujący research przez SSE",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/michaldabrowski-dentons/real-estate-research.git"
+  },
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "mock": "node scripts/mock-sse-server.mjs"
+  },
+  "dependencies": {
+    "gsap": "^3.12.7",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.7",
+    "@types/react": "^19.1.2",
+    "@types/react-dom": "^19.1.2",
+    "@vitejs/plugin-react": "^4.4.1",
+    "tailwindcss": "^4.1.7",
+    "typescript": "^5.8.3",
+    "vite": "^6.3.5"
+  }
+}
