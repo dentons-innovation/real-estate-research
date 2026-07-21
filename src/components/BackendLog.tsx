@@ -7,9 +7,11 @@ export interface LogEntry {
   time: string
   phase: string
   message: string
-  /** phase_id z backendu — steruje nagłówkami sekcji i kolorem tagu. */
+  /** Kanoniczne phase_id (już zmapowane na fazę frontendu) — steruje nagłówkami sekcji i kolorem tagu. */
   phaseId?: string
   meta?: ResearchEventMeta
+  /** 'error' → wpis renderowany na czerwono (pełny komunikat błędu backendu). */
+  kind?: 'error'
 }
 
 const GROUP_TEXT: Record<'gold' | 'teal' | 'light', string> = {
@@ -28,6 +30,7 @@ function tagColor(entry: LogEntry): string {
 
 /** Treść wpisu z podświetloną nazwą deala (gdy backend ją przysłał). */
 function MessageText({ entry }: { entry: LogEntry }) {
+  if (entry.kind === 'error') return <span className="text-red-300/90">{entry.message}</span>
   const deal = entry.meta?.deal
   if (deal && entry.message.includes(deal)) {
     const at = entry.message.indexOf(deal)
@@ -47,9 +50,11 @@ interface BackendLogProps {
   /** true dopóki research trwa — pulsująca kropka statusu + kursor. */
   running: boolean
   cancelled: boolean
+  /** Research zakończony błędem — czerwony status, szczegóły w czerwonych wpisach. */
+  failed: boolean
 }
 
-export default function BackendLog({ entries, running, cancelled }: BackendLogProps) {
+export default function BackendLog({ entries, running, cancelled, failed }: BackendLogProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
   /** Auto-scroll tylko, gdy user jest przy dole — czytanie scrollbacku nie jest wyrywane. */
   const nearBottomRef = useRef(true)
@@ -75,10 +80,10 @@ export default function BackendLog({ entries, running, cancelled }: BackendLogPr
         <span className="flex items-center gap-2 font-mono text-[10px] tracking-[0.28em] text-white/40 uppercase">
           <span
             className={`h-1.5 w-1.5 rounded-full ${
-              cancelled ? 'bg-den-red' : running ? 'animate-pulse bg-den-teal' : 'bg-den-teal'
+              failed || cancelled ? 'bg-den-red' : running ? 'animate-pulse bg-den-teal' : 'bg-den-teal'
             }`}
           />
-          {cancelled ? 'Rozłączono' : 'Live status · backend'}
+          {failed ? 'Błąd backendu' : cancelled ? 'Rozłączono' : 'Live status · backend'}
         </span>
         <span className="font-mono text-[9.5px] tracking-[0.18em] text-white/25 uppercase">
           konsola misji · n8n stream
@@ -113,7 +118,11 @@ export default function BackendLog({ entries, running, cancelled }: BackendLogPr
               )}
               <div data-log-line className="flex gap-2 whitespace-pre-wrap">
                 <span className="shrink-0 text-white/30">[{entry.time}]</span>
-                {entry.phase && <span className={`shrink-0 ${tagColor(entry)}`}>{entry.phase}</span>}
+                {entry.phase && (
+                  <span className={`shrink-0 ${entry.kind === 'error' ? 'font-semibold text-den-red' : tagColor(entry)}`}>
+                    {entry.phase}
+                  </span>
+                )}
                 <MessageText entry={entry} />
               </div>
             </div>

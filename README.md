@@ -2,9 +2,10 @@
 
 Narzędzie do researchu transakcji na polskim rynku nieruchomości — wersja demonstracyjna
 dla zespołu marketingu. Frontend łączy się przez **SSE z backendem n8n** i pokazuje
-„Mapę Misji": neonowy timeline z 10 checkpointami faz, po którym płynnie porusza się
-wirtualny robot, listę faz z ikonami oraz dużą konsolę logów na żywo z nagłówkami sekcji.
-Tabela wyników renderuje dane odebrane w finalnym evencie strumienia; eksport CSV działa naprawdę.
+„Mapę Misji": neonowy timeline z 11 checkpointami faz, po którym płynnie porusza się
+wirtualny robot, listę faz z ikonami oraz dużą konsolę logów na żywo z nagłówkami sekcji
+(zwijana przyciskiem „Ukryj szczegóły”). Tabela wyników renderuje dane odebrane
+w finalnym evencie strumienia; eksport CSV działa naprawdę.
 
 ## Uruchomienie
 
@@ -41,6 +42,9 @@ Vite · React 19 · TypeScript · Tailwind CSS 4 · GSAP · n8n (backend SSE)
    `init → research_launch → research_1 → research_2 → research_3 → dedup → gap_analysis → deepening → compile → done`
    (fazy `research_1..3` odpowiadają kolejnym UKOŃCZONYM zadaniom deep research;
    `deepening` niesie `progress` 0..1 oraz meta `deal`, `deal_index`, `deal_total`).
+   Frontend mapuje je na 11 własnych checkpointów (`src/lib/phases.ts`, `resolvePhase()`):
+   `dedup` + `gap_analysis` → jeden checkpoint „Scalanie i braki”, a długie `deepening`
+   dzieli wizualnie na trzy etapy po 1/3 postępu.
    Event finalny to czysta tablica transakcji z kluczami-etykietami kolumn
    (`"Data ogłoszenia"`, `"Deal/asset"`, …). Parser frontendu
    (`src/lib/researchStream.ts`) rozumie czyste SSE (`data: ...`), NDJSON
@@ -49,8 +53,10 @@ Vite · React 19 · TypeScript · Tailwind CSS 4 · GSAP · n8n (backend SSE)
    lokalny serwer streamujący pełny protokół (10 faz + finalna tabela) w ~30 s.
    Na czas testu ustaw w `.env.local`:
    `VITE_N8N_SSE_WEBHOOK_URL=http://localhost:5678/webhook/research-sse`.
-5. Zerwanie połączenia lub HTTP ≠ 200 → stan błędu z przerażonym agentem
-   i technicznym szczegółem błędu w dolnym panelu.
+5. Zerwanie połączenia lub HTTP ≠ 200 **nie zmienia ekranu**: robot łapie się
+   za głowę w miejscu, w którym stanął na timeline, a pełny techniczny komunikat
+   błędu ląduje na czerwono w konsoli misji. Przycisk w sidebarze zmienia się
+   w „Spróbuj ponownie”.
 
 ## Ważne
 
@@ -63,5 +69,5 @@ Vite · React 19 · TypeScript · Tailwind CSS 4 · GSAP · n8n (backend SSE)
   `src/components/PhaseList.tsx` (lista faz), `src/components/BackendLog.tsx` (konsola logów).
 - Zabawne teksty w dymku robota: pula w `src/components/SearchingState.tsx` (czysto frontendowa).
 - W trakcie researchu przycisk „Symuluj błąd (Mock Error)” w sidebarze wywołuje
-  symulowany stan błędu backendu (`src/components/ErrorState.tsx`); „Spróbuj ponownie”
-  wraca do ekranu startowego.
+  symulowany błąd backendu — identyczna obsługa jak przy prawdziwym błędzie
+  (panika robota + czerwony wpis w konsoli), bez zmiany ekranu.

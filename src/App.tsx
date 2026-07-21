@@ -4,15 +4,15 @@ import Sidebar, { TIME_RANGES } from './components/Sidebar'
 import BackgroundScene from './components/BackgroundScene'
 import IdleState from './components/IdleState'
 import SearchingState from './components/SearchingState'
-import ErrorState from './components/ErrorState'
 import ResultsTable from './components/ResultsTable'
 import { mapApiTransactions, type Transaction } from './data/transactions'
 import { startResearchStream, type ResearchStreamHandle, type ResearchEventMeta } from './lib/researchStream'
-import { PHASE_INDEX, LAST_PHASE, type MissionState } from './lib/phases'
+import { PHASES, LAST_PHASE, resolvePhase, type MissionState } from './lib/phases'
 import { N8N_SSE_WEBHOOK_URL } from './config'
 import type { LogEntry } from './components/BackendLog'
 
-export type Phase = 'idle' | 'searching' | 'cancelled' | 'error' | 'results'
+/** 'failed' zostaje na ekranie misji: błąd ląduje w konsoli, robot panikuje. */
+export type Phase = 'idle' | 'searching' | 'cancelled' | 'failed' | 'results'
 
 const SHOW_AVATAR_KEY = 'dentons-re-show-avatar'
 
@@ -23,7 +23,8 @@ export default function App() {
   const [results, setResults] = useState<Transaction[]>([])
   const [logEntries, setLogEntries] = useState<LogEntry[]>([])
   const [mission, setMission] = useState<MissionState>({ idx: 0, progress: 0 })
-  const [errorDetail, setErrorDetail] = useState<string | undefined>(undefined)
+  /** Klucz przebiegu — remount SearchingState przy każdym starcie (świeży stan dymka/logów). */
+  const [runId, setRunId] = useState(0)
   const phaseRef = useRef<Phase>(phase)
   const stageRef = useRef<HTMLDivElement>(null)
   const resetTimerRef = useRef<number | null>(null)
@@ -43,9 +44,9 @@ export default function App() {
   }, [])
 
   const appendLog = useCallback(
-    (phaseName: string, message: string, phaseId?: string, meta?: ResearchEventMeta) => {
+    (phaseName: string, message: string, phaseId?: string, meta?: ResearchEventMeta, kind?: 'error') => {
       const time = new Date().toLocaleTimeString('pl-PL', { hour12: false })
-      setLogEntries((prev) => [...prev, { time, phase: phaseName, message, phaseId, meta }])
+      setLogEntries((prev) => [...prev, { time, phase: phaseName, message, phaseId, meta, kind }])
     },
     [],
   )
@@ -95,7 +96,7 @@ export default function App() {
     if (phaseRef.current === 'searching' || phaseRef.current === 'cancelled' || transitionPendingRef.current) return
     setLogEntries([])
     setMission({ idx: 0, progress: 0 })
-    setErrorDetail(undefined)
+    setRunId((r) => r + 1)
     runActiveRef.current = true
     transitionTo('searching')
 
@@ -107,18 +108,18 @@ export default function App() {
       range: timeRange,
       onEvent: (event) => {
         if (!runActiveRef.current) return
-        appendLog(event.phase, event.message, event.phaseId, event.meta)
-        const targetIdx = event.phaseId !== undefined ? PHASE_INDEX[event.phaseId] : undefined
-        if (targetIdx === undefined) return // event bez znanego phase_id → tylko log
-        const progress = event.progress ?? 0
+        // mapowanie backendowego phase_id na checkpoint frontendu (merge dedup+gaps, split deepening)
+        const resolved = event.phaseId !== undefined ? resolvePhase(event.phaseId, event.progress ?? 0) : null
+        appendLog(event.phase, event.message, resolved ? PHASES[resolved.idx].id : undefined, event.meta)
+        if (!resolved) return // event bez znanego phase_id → tylko log
         setMission((prev) => {
           // guard monotoniczny: indeks tylko rośnie, progress rośnie w obrębie fazy
-          if (targetIdx < prev.idx || (targetIdx === prev.idx && progress <= prev.progress)) {
+          if (resolved.idx < prev.idx || (resolved.idx === prev.idx && resolved.progress <= prev.progress)) {
             return event.meta ? { ...prev, meta: { ...prev.meta, ...event.meta } } : prev
           }
           return {
-            idx: targetIdx,
-            progress: targetIdx === prev.idx ? Math.max(prev.progress, progress) : progress,
+            idx: resolved.idx,
+            progress: resolved.idx === prev.idx ? Math.max(prev.progress, resolved.progress) : resolved.progress,
             meta: { ...prev.meta, ...event.meta },
           }
         })
@@ -138,8 +139,9 @@ export default function App() {
         if (!runActiveRef.current) return
         runActiveRef.current = false
         streamRef.current = null
-        setErrorDetail(detail)
-        settleTo('error')
+        // błąd zostaje na ekranie misji: pełny komunikat w konsoli, robot panikuje
+        appendLog('BŁĄD', detail, undefined, undefined, 'error')
+        setPhase('failed')
       },
     })
   }, [transitionTo, settleTo, appendLog, timeRange])
@@ -159,15 +161,20 @@ export default function App() {
     runActiveRef.current = false
     streamRef.current?.abort()
     streamRef.current = null
-    setErrorDetail(
+    appendLog(
+      'BŁĄD',
       [
         'Symulacja błędu backendu (Mock Error) — połączenie SSE przerwane ręcznie.',
         `POST ${N8N_SSE_WEBHOOK_URL}`,
-        new Date().toISOString(),
+        `HTTP 503 Service Unavailable · ${new Date().toISOString()}`,
+        '{"error":"UPSTREAM_TIMEOUT","retryAfter":30}',
       ].join('\n'),
+      undefined,
+      undefined,
+      'error',
     )
-    transitionTo('error')
-  }, [transitionTo])
+    setPhase('failed')
+  }, [appendLog])
 
   const handleToggleAvatar = useCallback(() => {
     setShowAvatar((prev) => {
@@ -176,11 +183,6 @@ export default function App() {
       return next
     })
   }, [])
-
-  const handleRetry = useCallback(() => {
-    if (phaseRef.current !== 'error' || transitionPendingRef.current) return
-    transitionTo('idle')
-  }, [transitionTo])
 
   const timeRangeLabel = TIME_RANGES.find((r) => r.value === timeRange)?.label ?? ''
 
@@ -213,15 +215,16 @@ export default function App() {
 
         <div ref={stageRef} className="flex flex-1 flex-col overflow-hidden">
           {phase === 'idle' && <IdleState />}
-          {(phase === 'searching' || phase === 'cancelled') && (
+          {(phase === 'searching' || phase === 'cancelled' || phase === 'failed') && (
             <SearchingState
+              key={runId}
               cancelled={phase === 'cancelled'}
+              failed={phase === 'failed'}
               mission={mission}
               entries={logEntries}
               showAvatar={showAvatar}
             />
           )}
-          {phase === 'error' && <ErrorState onRetry={handleRetry} errorDetail={errorDetail} showAvatar={showAvatar} />}
           {phase === 'results' && <ResultsTable rows={results} timeRangeLabel={timeRangeLabel} />}
         </div>
       </main>

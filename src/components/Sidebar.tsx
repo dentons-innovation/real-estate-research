@@ -51,6 +51,7 @@ export default function Sidebar({
 }: SidebarProps) {
   const searching = phase === 'searching'
   const cancelled = phase === 'cancelled'
+  const failed = phase === 'failed'
 
   return (
     <aside className="glass relative z-20 flex w-full flex-col gap-6 border-r border-white/10 px-6 py-7 lg:h-screen lg:w-[320px] lg:shrink-0 lg:overflow-y-auto">
@@ -165,7 +166,7 @@ export default function Sidebar({
                 <path d="M13.2 13.2 L17 17" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
                 <path d="M9 6.5 A2.5 2.5 0 0 0 6.5 9" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" opacity="0.7" />
               </svg>
-              {cancelled ? 'Przerywanie…' : 'Rozpocznij research'}
+              {cancelled ? 'Przerywanie…' : failed ? 'Spróbuj ponownie' : 'Rozpocznij research'}
             </span>
           </button>
         )}

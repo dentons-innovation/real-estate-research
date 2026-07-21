@@ -32,13 +32,6 @@ const ICON_PATHS: Record<PhaseIcon, ReactElement> = {
       <path d="m11.5 9.5 2 2-2 2" />
     </>
   ),
-  gaps: (
-    <>
-      <circle cx="6.8" cy="6.8" r="4.3" />
-      <path d="m10 10 3.5 3.5" />
-      <path d="M5 5.8h3.6M5 7.8h2.4" />
-    </>
-  ),
   drill: (
     <>
       <path d="M8 1.5V8" />
@@ -77,14 +70,17 @@ function activeCaption(mission: MissionState): string {
   const { meta } = mission
   const id = PHASES[mission.idx].id
   if (!meta) return ''
-  if (id === 'research_1' || id === 'research_2' || id === 'research_3') {
+  if (id.startsWith('research_') && id !== 'research_launch') {
     return meta.doneLabels ? `ukończone: ${meta.doneLabels}` : 'zadania w toku...'
   }
-  if (id === 'dedup' && meta.dealsTotal !== undefined) return `${meta.dealsTotal} unikalnych transakcji`
-  if (id === 'gap_analysis' && meta.deepenTotal !== undefined && meta.dealsTotal !== undefined) {
-    return `${meta.deepenTotal} z ${meta.dealsTotal} z brakami`
+  if (id === 'dedup_gaps') {
+    if (meta.deepenTotal !== undefined && meta.dealsTotal !== undefined) {
+      return `${meta.deepenTotal} z ${meta.dealsTotal} z brakami`
+    }
+    if (meta.dealsTotal !== undefined) return `${meta.dealsTotal} unikalnych transakcji`
+    return ''
   }
-  if (id === 'deepening' && meta.dealIndex !== undefined && meta.dealTotal !== undefined) {
+  if (id.startsWith('deepening') && meta.dealIndex !== undefined && meta.dealTotal !== undefined) {
     return `${meta.dealIndex}/${meta.dealTotal}: ${meta.deal ?? ''}`
   }
   return ''
@@ -93,19 +89,21 @@ function activeCaption(mission: MissionState): string {
 interface PhaseListProps {
   mission: MissionState
   cancelled: boolean
+  failed: boolean
 }
 
-export default function PhaseList({ mission, cancelled }: PhaseListProps) {
+export default function PhaseList({ mission, cancelled, failed }: PhaseListProps) {
   const caption = activeCaption(mission)
+  const danger = cancelled || failed
   return (
-    <ol className="grid w-full grid-cols-2 gap-1.5 sm:grid-cols-3 lg:grid-cols-5" aria-label="Fazy misji">
+    <ol className="grid w-full grid-cols-2 gap-1.5 sm:grid-cols-3 lg:grid-cols-6" aria-label="Fazy misji">
       {PHASES.map((p, i) => {
         const active = i === mission.idx
         const done = i < mission.idx || (active && mission.progress >= 1 && i === PHASES.length - 1)
         const tone = done
           ? 'border-den-teal/40 bg-den-teal/5 text-den-teal/90'
           : active
-            ? cancelled
+            ? danger
               ? 'border-den-red/50 bg-den-red/10 text-red-300'
               : 'border-den-gold/60 bg-den-gold/10 text-den-gold'
             : 'border-white/10 bg-white/[0.03] text-white/30'
@@ -128,7 +126,7 @@ export default function PhaseList({ mission, cancelled }: PhaseListProps) {
                 {active && !done && (
                   <span
                     className={`ml-auto h-1.5 w-1.5 shrink-0 rounded-full ${
-                      cancelled ? 'bg-den-red' : 'animate-pulse bg-den-gold motion-reduce:animate-none'
+                      danger ? 'bg-den-red' : 'animate-pulse bg-den-gold motion-reduce:animate-none'
                     }`}
                   />
                 )}

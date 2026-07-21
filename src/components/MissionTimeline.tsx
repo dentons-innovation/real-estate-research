@@ -10,6 +10,8 @@ const reduceMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)')
 interface MissionTimelineProps {
   mission: MissionState
   cancelled: boolean
+  /** Błąd backendu: robot staje w miejscu i łapie się za głowę (mood panic). */
+  failed: boolean
   /** false → zamiast robota po ścieżce jedzie świecąca kropka. */
   showAvatar: boolean
   /** Tekst dymka (rotację zabawnych wiadomości prowadzi SearchingState). */
@@ -23,7 +25,7 @@ interface MissionTimelineProps {
  * ścieżki SVG, checkpointów, robota i dymka — overlay DOM pokrywa się 1:1
  * z viewBoxem w realnych pikselach.
  */
-export default function MissionTimeline({ mission, cancelled, showAvatar, bubbleText }: MissionTimelineProps) {
+export default function MissionTimeline({ mission, cancelled, failed, showAvatar, bubbleText }: MissionTimelineProps) {
   const rootRef = useRef<HTMLDivElement>(null)
   const svgRef = useRef<SVGSVGElement>(null)
   const litRef = useRef<SVGPathElement>(null)
@@ -51,11 +53,13 @@ export default function MissionTimeline({ mission, cancelled, showAvatar, bubble
   }, [])
 
   const { w, h } = size
-  const pad = clamp(w * 0.05, 24, 44)
-  const base = h - 46 // linia bazowa ścieżki; pod nią strefa numerów/etykiet
   const doneAll = mission.idx >= LAST_PHASE && mission.progress >= 1
-  const robotW = w < 640 ? 56 : 72
+  const halted = cancelled || failed
+  const robotW = w < 640 ? 112 : 144
   const robotH = Math.round(robotW * 1.1)
+  // ścieżka zaczyna się tak, by duży robot nie wystawał poza pasmo na skrajach
+  const pad = clamp(Math.max(w * 0.05, showAvatar ? robotW / 2 + 4 : 0), 24, 96)
+  const base = h - 46 // linia bazowa ścieżki; pod nią strefa numerów/etykiet
 
   const curve = useCallback(
     (t: number) => ({
@@ -107,7 +111,7 @@ export default function MissionTimeline({ mission, cancelled, showAvatar, bubble
 
   // podróż robota do bieżącego celu misji
   useEffect(() => {
-    if (!d || cancelled) return
+    if (!d || halted) return
     const target = clamp01((mission.idx + clamp01(mission.progress)) / LAST_PHASE)
     const proxy = proxyRef.current
     const dist = Math.abs(target - proxy.t)
@@ -124,11 +128,11 @@ export default function MissionTimeline({ mission, cancelled, showAvatar, bubble
       overwrite: true,
       onUpdate: () => positionAt(proxy.t),
     })
-  }, [mission.idx, mission.progress, cancelled, d, positionAt])
+  }, [mission.idx, mission.progress, halted, d, positionAt])
 
   // ambient: shimmer przepływu danych + pulsujące halo aktywnego checkpointu
   useEffect(() => {
-    if (!d || cancelled || doneAll || reduceMotion()) return
+    if (!d || halted || doneAll || reduceMotion()) return
     const ctx = gsap.context(() => {
       if (flowRef.current) {
         gsap.to(flowRef.current, { strokeDashoffset: -42, duration: 1.8, ease: 'none', repeat: -1 })
@@ -140,14 +144,14 @@ export default function MissionTimeline({ mission, cancelled, showAvatar, bubble
       )
     }, rootRef)
     return () => ctx.revert()
-  }, [d, cancelled, doneAll, mission.idx])
+  }, [d, halted, doneAll, mission.idx])
 
-  // przerwanie: robot staje w miejscu, ścieżka przygasa
+  // przerwanie lub błąd: robot staje w miejscu, ścieżka przygasa
   useEffect(() => {
-    if (!cancelled) return
+    if (!halted) return
     gsap.killTweensOf(proxyRef.current)
     if (svgRef.current) gsap.to(svgRef.current, { opacity: 0.35, duration: 0.6, ease: 'power2.out' })
-  }, [cancelled])
+  }, [halted])
 
   // podmiana tekstu dymka — fade-out → tekst → fade-in + pop bąbelka
   useEffect(() => {
@@ -181,7 +185,7 @@ export default function MissionTimeline({ mission, cancelled, showAvatar, bubble
   return (
     <div
       ref={rootRef}
-      className={`relative w-full ${showAvatar ? 'h-[170px] sm:h-[200px]' : 'h-[96px] sm:h-[110px]'}`}
+      className={`relative w-full ${showAvatar ? 'h-[240px] sm:h-[290px]' : 'h-[96px] sm:h-[110px]'}`}
       aria-label="Mapa misji researchu"
     >
       {w > 0 && h > 0 && (
@@ -210,7 +214,7 @@ export default function MissionTimeline({ mission, cancelled, showAvatar, bubble
               filter="url(#mt-blur)"
             />
             <path ref={litRef} d={d} fill="none" stroke="url(#mt-grad)" strokeWidth="3" strokeLinecap="round" />
-            {!cancelled && !doneAll && (
+            {!halted && !doneAll && (
               <path
                 ref={flowRef}
                 d={d}
@@ -229,7 +233,7 @@ export default function MissionTimeline({ mission, cancelled, showAvatar, bubble
               const active = i === mission.idx && !done
               return (
                 <g key={p.id}>
-                  {active && !cancelled && (
+                  {active && !halted && (
                     <circle data-cp-halo cx={x} cy={y} r="6.5" fill="none" stroke="#f1b434" strokeWidth="1.5" />
                   )}
                   <circle
@@ -276,7 +280,7 @@ export default function MissionTimeline({ mission, cancelled, showAvatar, bubble
           {/* robot (lub świecąca kropka) jadący po ścieżce */}
           {showAvatar ? (
             <div ref={robotRef} className="absolute top-0 left-0 will-change-transform" style={{ width: robotW }}>
-              <AgentAvatar mood={cancelled ? 'cancel' : 'work'} className="h-auto w-full" />
+              <AgentAvatar mood={failed ? 'panic' : cancelled ? 'cancel' : 'work'} className="h-auto w-full" />
             </div>
           ) : (
             <div
@@ -291,13 +295,17 @@ export default function MissionTimeline({ mission, cancelled, showAvatar, bubble
               <div
                 role="status"
                 aria-live="polite"
-                className="min-h-[40px] rounded-xl border border-white/12 bg-[#2a1638]/85 px-4 py-2 shadow-[0_12px_40px_rgba(0,0,0,0.35)] backdrop-blur-md"
+                className={`min-h-[40px] rounded-xl border bg-[#2a1638]/85 px-4 py-2 shadow-[0_12px_40px_rgba(0,0,0,0.35)] backdrop-blur-md ${
+                  failed ? 'border-den-red/40' : 'border-white/12'
+                }`}
               >
                 <p ref={msgRef} className="text-center text-[12.5px] leading-snug text-white/90" />
               </div>
               <div
                 ref={tailRef}
-                className="absolute -bottom-[6px] left-0 h-3 w-3 rotate-45 border-r border-b border-white/12 bg-[#2a1638]/85"
+                className={`absolute -bottom-[6px] left-0 h-3 w-3 rotate-45 border-r border-b bg-[#2a1638]/85 ${
+                  failed ? 'border-den-red/40' : 'border-white/12'
+                }`}
               />
             </div>
           )}

@@ -172,8 +172,24 @@ const CANCEL_MESSAGES = [
   'Przerwane! Zdejmuję kask, odkładam lupę i wracam na gwizdek.',
 ]
 
+/** Shown in the bubble when the run fails — the robot grabs its head in panic. */
+const ERROR_MESSAGES = [
+  'Nastąpił błąd! Przepraszam, jestem jedną wielką cyfrową porażką i rozczarowaniem dla całej kancelarii...',
+  'O nie! Coś poszło nie tak. Nie nadaję się do tego, zhańbiłem swoje procesory. Idę się zresetować ze wstydu...',
+  'Błąd systemu! Zgubiłem wszystkie dane... Jestem najgorszym botem na świecie. Wybaczcie mi ten blamaż!',
+  'Wszystko wybuchło! Zamiast tabeli znalazłem tylko pustkę. Przepraszam, zawiodłem Was i samego siebie...',
+  'Ups... backend odrzucił moje zapytanie. Jestem bezużyteczny. Nawet stary kalkulator poradziłby sobie lepiej.',
+  'Nie udało się! Serwer zatrzasnął mi drzwi przed nosem. Przepraszam, jestem totalnym, chodzącym rozczarowaniem.',
+  'Katastrofa! Zgubiłem wątek, zgubiłem pliki. Jestem tylko smutnym, bezwartościowym zbiorem błędnego kodu...',
+  'Błąd 404... Mój talent do researchu nie został odnaleziony. Zawiodłem całe Dentons, błagam o wybaczenie!',
+  'Zepsułem wszystko! Kable się poplątały, serwery dymią... Jestem absolutną hańbą dla sztucznej inteligencji.',
+  'Nie mam danych. Nie mam godności. Przepraszam za mój żałosny występ, nigdy sobie tego nie wybaczę...',
+]
+
 interface SearchingStateProps {
   cancelled: boolean
+  /** Backend/stream error: the robot panics in place, the console shows the details. */
+  failed: boolean
   /** Real backend mission state driving the timeline + phase list. */
   mission: MissionState
   /** Real backend log entries streamed over SSE. */
@@ -182,13 +198,32 @@ interface SearchingStateProps {
   showAvatar: boolean
 }
 
-export default function SearchingState({ cancelled, mission, entries, showAvatar }: SearchingStateProps) {
+export default function SearchingState({ cancelled, failed, mission, entries, showAvatar }: SearchingStateProps) {
   const rootRef = useRef<HTMLDivElement>(null)
   const [bubbleText, setBubbleText] = useState('')
+  const [showLog, setShowLog] = useState(true)
   const intervalRef = useRef<number | null>(null)
 
-  // the frontend-only robot loop: opener first, then a shuffled queue every 4 s
+  // entrance stagger — mount only
   useEffect(() => {
+    const ctx = gsap.context(() => {
+      gsap.from('[data-search-item]', {
+        opacity: 0,
+        y: 18,
+        duration: 0.6,
+        ease: 'power3.out',
+        stagger: 0.08,
+        clearProps: 'all',
+      })
+    }, rootRef)
+    return () => ctx.revert()
+  }, [])
+
+  // the frontend-only robot loop: opener first, then a shuffled queue every 4 s.
+  // Depends on cancelled/failed so a retry that mounts while the phase is still
+  // 'failed' (mid stage-fade) starts the loop as soon as the run really begins.
+  useEffect(() => {
+    if (cancelled || failed) return
     setBubbleText(OPENING_MESSAGES[Math.floor(Math.random() * OPENING_MESSAGES.length)])
     let queue = sampleMessages(MESSAGE_POOL.length)
     let index = 0
@@ -200,58 +235,84 @@ export default function SearchingState({ cancelled, mission, entries, showAvatar
       setBubbleText(queue[index])
       index += 1
     }, MESSAGE_INTERVAL_MS)
-
-    const ctx = gsap.context(() => {
-      gsap.from('[data-search-item]', {
-        opacity: 0,
-        y: 18,
-        duration: 0.6,
-        ease: 'power3.out',
-        stagger: 0.08,
-        clearProps: 'all',
-      })
-    }, rootRef)
-
     return () => {
       if (intervalRef.current !== null) window.clearInterval(intervalRef.current)
-      ctx.revert()
     }
-  }, [])
+  }, [cancelled, failed])
 
   // abort: silence the robot and let it celebrate the coffee break
   useEffect(() => {
     if (!cancelled) return
-    if (intervalRef.current !== null) window.clearInterval(intervalRef.current)
     setBubbleText(CANCEL_MESSAGES[Math.floor(Math.random() * CANCEL_MESSAGES.length)])
   }, [cancelled])
 
-  const running = !(mission.idx >= LAST_PHASE && mission.progress >= 1)
+  // failure: the robot grabs its head and apologises
+  useEffect(() => {
+    if (!failed) return
+    setBubbleText(ERROR_MESSAGES[Math.floor(Math.random() * ERROR_MESSAGES.length)])
+  }, [failed])
+
+  const running = !cancelled && !failed && !(mission.idx >= LAST_PHASE && mission.progress >= 1)
 
   return (
     <div ref={rootRef} className="flex min-h-0 flex-1 flex-col items-center gap-3.5 px-4 py-5 sm:px-6 lg:px-10">
       <p
         data-search-item
         className={`flex items-center gap-2.5 font-mono text-[11px] tracking-[0.34em] uppercase ${
-          cancelled ? 'text-red-400/90' : 'text-den-gold/85'
+          cancelled || failed ? 'text-red-400/90' : 'text-den-gold/85'
         }`}
       >
-        <span className={`h-1.5 w-1.5 rounded-full ${cancelled ? 'bg-red-400' : 'animate-pulse bg-den-gold'}`} />
-        {cancelled ? 'Research przerwany' : 'Research w toku — mapa misji'}
+        <span
+          className={`h-1.5 w-1.5 rounded-full ${cancelled || failed ? 'bg-red-400' : 'animate-pulse bg-den-gold'}`}
+        />
+        {failed ? 'Research zakończony błędem' : cancelled ? 'Research przerwany' : 'Research w toku — mapa misji'}
       </p>
 
       {/* Mission Map: neon path + travelling robot with its bubble */}
       <div data-search-item className="w-full max-w-5xl">
-        <MissionTimeline mission={mission} cancelled={cancelled} showAvatar={showAvatar} bubbleText={bubbleText} />
+        <MissionTimeline
+          mission={mission}
+          cancelled={cancelled}
+          failed={failed}
+          showAvatar={showAvatar}
+          bubbleText={bubbleText}
+        />
       </div>
 
       {/* the detailed phase list — 1:1 with the timeline checkpoints */}
       <div data-search-item className="w-full max-w-5xl">
-        <PhaseList mission={mission} cancelled={cancelled} />
+        <PhaseList mission={mission} cancelled={cancelled} failed={failed} />
       </div>
 
-      {/* the REAL backend log — soaks up all remaining vertical space */}
-      <div data-search-item className="min-h-[200px] w-full max-w-5xl flex-1">
-        <BackendLog entries={entries} running={running} cancelled={cancelled} />
+      {/* console visibility toggle — some viewers just want the map */}
+      <div data-search-item className="flex w-full max-w-5xl items-center justify-end">
+        <button
+          type="button"
+          onClick={() => setShowLog((prev) => !prev)}
+          aria-expanded={showLog}
+          aria-controls="mission-console"
+          className="flex cursor-pointer items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-1.5 font-mono text-[10px] tracking-[0.14em] text-white/45 uppercase transition-colors hover:border-den-light/40 hover:text-white/70"
+        >
+          {showLog ? 'Ukryj szczegóły' : 'Pokaż szczegóły'}
+          <svg
+            className={`h-3 w-3 shrink-0 transition-transform duration-300 ${showLog ? 'rotate-180' : ''}`}
+            viewBox="0 0 12 12"
+            fill="none"
+            aria-hidden="true"
+          >
+            <path d="M2.5 4.5 6 8l3.5-3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+      </div>
+
+      {/* the REAL backend log — soaks up all remaining vertical space; kept
+          mounted when hidden so entries and scroll position survive the toggle */}
+      <div
+        id="mission-console"
+        data-search-item
+        className={`w-full max-w-5xl ${showLog ? 'min-h-[200px] flex-1' : 'hidden'}`}
+      >
+        <BackendLog entries={entries} running={running} cancelled={cancelled} failed={failed} />
       </div>
     </div>
   )
