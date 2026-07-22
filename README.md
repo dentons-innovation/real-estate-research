@@ -36,6 +36,16 @@ Vite · React 19 · TypeScript · Tailwind CSS 4 · GSAP · n8n (backend SSE)
    > nasłuchuje („Listen for test event”). Do normalnej pracy aktywuj workflow
    > i używaj `/webhook/...`.
 
+   Przycisk „Zatrzymaj research” (i „Mock Error”) wysyła dodatkowo
+   `POST /webhook/research-sse-stop` z `{run_id}` — drugi trigger w tym samym
+   workflow zapisuje flagę stopu w n8n **Data Table** `research_stop`, a główna
+   egzekucja sprawdza ją w pętlach i grzecznie się kończy. **Setup jednorazowy
+   w n8n:** utwórz Data Table `research_stop` z kolumną `run_id` (String)
+   i wskaż ją w węzłach „Zapisz flagę stopu” / „Stop flag? (research)” /
+   „Stop flag? (deal)”. Adres stop-webhooka jest wyprowadzany automatycznie
+   z głównego (`research-sse` → `research-sse-stop`); w razie potrzeby nadpisz
+   go zmienną `VITE_N8N_SSE_STOP_WEBHOOK_URL`.
+
 3. **Protokół strumienia:** eventy postępu to JSON-y
    `{"phase_id":"...","phase":"...","message":"...","progress":0.42,...}`.
    `phase_id` to jedno z 10 ID w kolejności timeline'u:

@@ -8,7 +8,7 @@ import ResultsTable from './components/ResultsTable'
 import { mapApiTransactions, type Transaction } from './data/transactions'
 import { startResearchStream, type ResearchStreamHandle, type ResearchEventMeta } from './lib/researchStream'
 import { PHASES, LAST_PHASE, resolvePhase, type MissionState } from './lib/phases'
-import { N8N_SSE_WEBHOOK_URL } from './config'
+import { N8N_SSE_WEBHOOK_URL, N8N_SSE_STOP_WEBHOOK_URL } from './config'
 import type { LogEntry } from './components/BackendLog'
 
 /** 'failed' zostaje na ekranie misji: błąd ląduje w konsoli, robot panikuje. */
@@ -33,6 +33,8 @@ export default function App() {
   /** True from "Rozpocznij research" until completion/cancel/error — independent of the
    *  React phase, which lags ~220 ms behind during the GSAP stage fade. */
   const runActiveRef = useRef(false)
+  /** Unikalny identyfikator bieżącego przebiegu — wysyłany do n8n przy starcie i przy stopie. */
+  const researchRunIdRef = useRef('')
 
   phaseRef.current = phase
 
@@ -50,6 +52,20 @@ export default function App() {
     },
     [],
   )
+
+  /** Fire-and-forget: każe backendowi n8n przerwać bieżącą egzekucję researchu. */
+  const notifyBackendStop = useCallback(() => {
+    const runId = researchRunIdRef.current
+    if (!runId) return
+    fetch(N8N_SSE_STOP_WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ run_id: runId }),
+      keepalive: true,
+    }).catch(() => {
+      /* backend może już nie żyć — stop jest best-effort */
+    })
+  }, [])
 
   /** Fades the stage out, swaps the phase, fades back in. */
   const transitionTo = useCallback((next: Phase) => {
@@ -97,6 +113,7 @@ export default function App() {
     setLogEntries([])
     setMission({ idx: 0, progress: 0 })
     setRunId((r) => r + 1)
+    researchRunIdRef.current = crypto.randomUUID()
     runActiveRef.current = true
     transitionTo('searching')
 
@@ -106,6 +123,7 @@ export default function App() {
     streamRef.current = startResearchStream({
       url: N8N_SSE_WEBHOOK_URL,
       range: timeRange,
+      runId: researchRunIdRef.current,
       onEvent: (event) => {
         if (!runActiveRef.current) return
         // mapowanie backendowego phase_id na checkpoint frontendu (merge dedup+gaps, split deepening)
@@ -151,16 +169,18 @@ export default function App() {
     runActiveRef.current = false
     streamRef.current?.abort()
     streamRef.current = null
-    appendLog('', 'Połączenie przerwane przez użytkownika.')
+    notifyBackendStop()
+    appendLog('', 'Połączenie przerwane przez użytkownika — wysłano do n8n żądanie zatrzymania researchu.')
     setPhase('cancelled')
     resetTimerRef.current = window.setTimeout(() => transitionTo('idle'), 3000)
-  }, [transitionTo, appendLog])
+  }, [transitionTo, appendLog, notifyBackendStop])
 
   const handleMockError = useCallback(() => {
     if (phaseRef.current !== 'searching' || transitionPendingRef.current) return
     runActiveRef.current = false
     streamRef.current?.abort()
     streamRef.current = null
+    notifyBackendStop()
     appendLog(
       'BŁĄD',
       [
@@ -174,7 +194,7 @@ export default function App() {
       'error',
     )
     setPhase('failed')
-  }, [appendLog])
+  }, [appendLog, notifyBackendStop])
 
   const handleToggleAvatar = useCallback(() => {
     setShowAvatar((prev) => {

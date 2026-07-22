@@ -34,6 +34,8 @@ export interface ResearchEvent {
 interface StartOptions {
   url: string
   range: string
+  /** Identyfikator przebiegu — backend flaguje nim żądania zatrzymania. */
+  runId?: string
   onEvent: (event: ResearchEvent) => void
   /** Fired once with the final payload (array of raw transaction records). */
   onComplete: (rawTransactions: unknown[]) => void
@@ -53,7 +55,7 @@ function extractFinalArray(value: unknown): unknown[] | null {
   return null
 }
 
-export function startResearchStream({ url, range, onEvent, onComplete, onError }: StartOptions): ResearchStreamHandle {
+export function startResearchStream({ url, range, runId, onEvent, onComplete, onError }: StartOptions): ResearchStreamHandle {
   const controller = new AbortController()
   let finished = false // completion or error already delivered
   let aborted = false
@@ -150,7 +152,7 @@ export function startResearchStream({ url, range, onEvent, onComplete, onError }
       const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ range }),
+        body: JSON.stringify({ range, run_id: runId }),
         signal: controller.signal,
       })
       if (!response.ok) {

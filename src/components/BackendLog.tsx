@@ -85,9 +85,6 @@ export default function BackendLog({ entries, running, cancelled, failed }: Back
           />
           {failed ? 'Błąd backendu' : cancelled ? 'Rozłączono' : 'Live status · backend'}
         </span>
-        <span className="font-mono text-[9.5px] tracking-[0.18em] text-white/25 uppercase">
-          konsola misji · n8n stream
-        </span>
       </div>
 
       {/* the real backend log — the only flexible child, soaks up all space */}

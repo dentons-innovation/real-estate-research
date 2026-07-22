@@ -170,9 +170,6 @@ export default function Sidebar({
             </span>
           </button>
         )}
-        <p className="text-center font-mono text-[10px] tracking-[0.14em] text-white/25">
-          Wersja demonstracyjna · dane przykładowe
-        </p>
       </div>
     </aside>
   )

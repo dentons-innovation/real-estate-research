@@ -77,7 +77,7 @@ function CellContent({ column, row }: { column: ColumnDef; row: Transaction }) {
     case 'status':
       return (
         <span
-          className={`inline-block rounded-full border px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap capitalize ${
+          className={`inline-block max-w-full rounded-full border px-2.5 py-1 text-[11px] leading-snug font-semibold break-words whitespace-normal capitalize ${
             STATUS_STYLES[value] ?? 'border-den-grey bg-den-grey/20 text-den-ink/60'
           }`}
         >
@@ -86,7 +86,7 @@ function CellContent({ column, row }: { column: ColumnDef; row: Transaction }) {
       )
     case 'sector':
       return (
-        <span className="inline-block rounded-full border border-den-light/40 bg-den-light/10 px-2.5 py-1 text-[11px] font-medium whitespace-nowrap text-den-dark capitalize">
+        <span className="inline-block max-w-full rounded-full border border-den-light/40 bg-den-light/10 px-2.5 py-1 text-[11px] leading-snug font-medium break-words whitespace-normal text-den-dark capitalize">
           {SECTOR_LABELS[value] ?? value}
         </span>
       )

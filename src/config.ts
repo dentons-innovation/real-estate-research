@@ -7,3 +7,11 @@
  */
 export const N8N_SSE_WEBHOOK_URL: string =
   import.meta.env.VITE_N8N_SSE_WEBHOOK_URL ?? 'http://localhost:5678/webhook/research-sse'
+
+/**
+ * Webhook zatrzymania researchu (drugi trigger w tym samym workflow n8n).
+ * Domyślnie wyprowadzany z adresu głównego webhooka: research-sse → research-sse-stop.
+ */
+export const N8N_SSE_STOP_WEBHOOK_URL: string =
+  import.meta.env.VITE_N8N_SSE_STOP_WEBHOOK_URL ??
+  N8N_SSE_WEBHOOK_URL.replace(/research-sse\/?$/, 'research-sse-stop')

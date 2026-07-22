@@ -95,19 +95,53 @@ const CORS = {
   'Access-Control-Allow-Headers': 'Content-Type',
 }
 
-const server = http.createServer((req, res) => {
+/** Aktywne strumienie researchu: run_id -> funkcja przerywająca. */
+const active = new Map()
+
+function readJsonBody(req) {
+  return new Promise((resolve) => {
+    let raw = ''
+    req.on('data', (chunk) => {
+      raw += chunk
+    })
+    req.on('end', () => {
+      try {
+        resolve(JSON.parse(raw || '{}'))
+      } catch {
+        resolve({})
+      }
+    })
+  })
+}
+
+const server = http.createServer(async (req, res) => {
   if (req.method === 'OPTIONS') {
     res.writeHead(204, CORS)
     res.end()
     return
   }
+
+  // stop-webhook — jak w n8n: zapisuje "flagę" i przerywa pasujący strumień
+  if (req.method === 'POST' && req.url.startsWith('/webhook/research-sse-stop')) {
+    const body = await readJsonBody(req)
+    const runId = String(body.run_id || '')
+    const abort = active.get(runId)
+    console.log(`[${new Date().toLocaleTimeString()}] stop request (run_id: ${runId || 'brak'}) — ${abort ? 'przerywam strumień' : 'brak aktywnego strumienia'}`)
+    if (abort) abort()
+    res.writeHead(200, { ...CORS, 'Content-Type': 'application/json; charset=utf-8' })
+    res.end(JSON.stringify({ ok: true }))
+    return
+  }
+
   if (req.method !== 'POST' || !req.url.startsWith('/webhook/research-sse')) {
     res.writeHead(404, { ...CORS, 'Content-Type': 'text/plain; charset=utf-8' })
     res.end('not found — POST /webhook/research-sse')
     return
   }
 
-  console.log(`[${new Date().toLocaleTimeString()}] research start (${req.socket.remoteAddress})`)
+  const body = await readJsonBody(req)
+  const runId = String(body.run_id || `anon-${Date.now()}`)
+  console.log(`[${new Date().toLocaleTimeString()}] research start (run_id: ${runId})`)
   res.writeHead(200, {
     ...CORS,
     'Content-Type': 'application/x-ndjson; charset=utf-8',
@@ -120,9 +154,9 @@ const server = http.createServer((req, res) => {
   const tick = () => {
     if (res.writableEnded) return
     if (i < EVENTS.length) {
-      const [body, delay] = EVENTS[i]
-      res.write(JSON.stringify(body) + '\n')
-      console.log(`  → ${body.phase_id}${body.progress !== undefined ? ` (${body.progress})` : ''}`)
+      const [event, delay] = EVENTS[i]
+      res.write(JSON.stringify(event) + '\n')
+      console.log(`  → ${event.phase_id}${event.progress !== undefined ? ` (${event.progress})` : ''}`)
       i += 1
       timer = setTimeout(tick, delay)
     } else {
@@ -131,13 +165,22 @@ const server = http.createServer((req, res) => {
       console.log('  → final payload, stream closed')
     }
   }
+  active.set(runId, () => {
+    if (timer) clearTimeout(timer)
+    if (!res.writableEnded) {
+      res.write(JSON.stringify({ phase: 'Przerwano', message: 'Otrzymałem żądanie zatrzymania — przerywam research i kończę egzekucję.' }) + '\n')
+      res.end()
+    }
+  })
   res.on('close', () => {
     if (timer) clearTimeout(timer)
+    active.delete(runId)
   })
   tick()
 })
 
 server.listen(PORT, () => {
   console.log(`Mock SSE server: POST http://localhost:${PORT}/webhook/research-sse`)
+  console.log(`             stop: POST http://localhost:${PORT}/webhook/research-sse-stop`)
   console.log('Ustaw VITE_N8N_SSE_WEBHOOK_URL na powyższy adres i odpal npm run dev.')
 })
