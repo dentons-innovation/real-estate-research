@@ -27,16 +27,37 @@ Vite · React 19 · TypeScript · Tailwind CSS 4 · GSAP · n8n (SSE backend)
 
 ## Deployment (Railway)
 
-The app is a static Vite build served with `vite preview`:
+The app is a Vite build served by `server.mjs` — a zero-dependency Node server
+that also **relays the n8n stream** (see below):
 
 - **Build command:** `npm run build` (Railway detects it automatically)
-- **Start command:** `npm start` (binds to `0.0.0.0` on Railway's `$PORT`)
+- **Start command:** `npm start` → `node server.mjs` (binds to `0.0.0.0` on
+  Railway's `$PORT`)
 - No environment variables are required — the n8n cloud webhook URL is the
-  built-in default. To override it, set `VITE_N8N_SSE_WEBHOOK_URL` in the
-  Railway service variables and **redeploy** (the value is baked in at build
-  time).
+  built-in default. To override the upstream for the relay, set
+  `N8N_SSE_WEBHOOK_URL` in the Railway service variables (runtime, no rebuild
+  needed). `VITE_N8N_SSE_WEBHOOK_URL` still exists but only affects the
+  browser's *direct-stream fallback* and is baked in at build time.
 - The n8n webhook allows all origins (`allowedOrigins: "*"`), so the Railway
   domain needs no CORS changes.
+
+### Why a relay? (corporate proxies vs SSE)
+
+Corporate web proxies (common on law-firm laptops) silently **buffer
+long-lived streamed POST responses**: the n8n domain is reachable, but the
+browser never receives a single byte of the SSE stream, so the UI hangs on
+"Connecting to backend…". The fix: the long-lived connection to n8n lives
+**server-side** (Railway ↔ n8n, outside the corporate network), and the
+browser only makes short same-origin requests:
+
+1. `POST /api/research/start` → server opens the n8n stream, returns a job id
+2. `GET /api/research/poll?id=…&after=N` every ~0.8 s → new raw stream lines
+3. the existing client parser (`src/lib/researchStream.ts`) interprets the
+   lines exactly as if they had arrived over the direct stream
+
+The client tries the relay first; when it is absent (local `vite` dev,
+`vite preview`, the mock) the start request 404s and the client falls back to
+streaming directly from the browser — so local dev needs no server.
 
 ## Backend (n8n + SSE)
 

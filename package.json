@@ -8,11 +8,14 @@
     "url": "https://github.com/michaldabrowski-dentons/real-estate-research.git"
   },
   "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "start": "vite preview --host 0.0.0.0 --port ${PORT:-4173}",
+    "start": "node server.mjs",
     "mock": "node scripts/mock-sse-server.mjs"
   },
   "dependencies": {

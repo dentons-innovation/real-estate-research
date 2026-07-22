@@ -49,6 +49,21 @@ interface StartOptions {
 /** No data within this window ⇒ almost certainly a buffering proxy/VPN. */
 const STALL_AFTER_MS = 15000
 
+/**
+ * Same-origin relay endpoints (see server.mjs). Corporate proxies buffer the
+ * long-lived n8n stream, so in production the long connection lives on the
+ * server (Railway ↔ n8n) and the browser only polls with short requests.
+ * When the relay is absent (vite dev/preview → 404) we fall back to streaming
+ * straight from the browser, which keeps local dev and the mock working.
+ */
+const RELAY_START_URL = '/api/research/start'
+const RELAY_POLL_URL = '/api/research/poll'
+const RELAY_ABORT_URL = '/api/research/abort'
+const RELAY_START_TIMEOUT_MS = 4000
+const POLL_INTERVAL_MS = 800
+/** Consecutive failed polls tolerated before giving up (transient network blips). */
+const MAX_POLL_FAILURES = 5
+
 export interface ResearchStreamHandle {
   abort: () => void
 }
@@ -180,8 +195,103 @@ export function startResearchStream({ url, range, onEvent, onComplete, onError, 
   }
   armStall()
 
+  let relayJobId: string | null = null
+
+  /** POST /api/research/start — null means "no relay here, stream directly". */
+  const tryRelayStart = async (): Promise<string | null> => {
+    const startController = new AbortController()
+    const timer = window.setTimeout(() => startController.abort(), RELAY_START_TIMEOUT_MS)
+    try {
+      const response = await fetch(RELAY_START_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ range }),
+        signal: startController.signal,
+      })
+      if (!response.ok) return null
+      const data: unknown = await response.json()
+      const jobId = data && typeof data === 'object' ? (data as Record<string, unknown>).jobId : undefined
+      return typeof jobId === 'string' ? jobId : null
+    } catch {
+      return null
+    } finally {
+      window.clearTimeout(timer)
+    }
+  }
+
+  /** Abort-aware pause between polls. */
+  const sleep = (ms: number) =>
+    new Promise<void>((resolve) => {
+      const timer = window.setTimeout(resolve, ms)
+      controller.signal.addEventListener(
+        'abort',
+        () => {
+          window.clearTimeout(timer)
+          resolve()
+        },
+        { once: true },
+      )
+    })
+
+  /** Short same-origin polls; the server accumulates the n8n stream for us. */
+  const pollRelay = async (jobId: string) => {
+    let after = 0
+    let failures = 0
+    while (!finished && !aborted && !controller.signal.aborted) {
+      try {
+        const response = await fetch(`${RELAY_POLL_URL}?id=${jobId}&after=${after}`, {
+          signal: controller.signal,
+          cache: 'no-store',
+        })
+        if (!response.ok) throw new Error(`HTTP ${response.status}`)
+        const data = (await response.json()) as { lines?: unknown; done?: unknown; error?: unknown }
+        failures = 0
+        const lines = Array.isArray(data.lines)
+          ? data.lines.filter((l): l is string => typeof l === 'string')
+          : []
+        if (lines.length > 0) {
+          markData()
+          after += lines.length
+          for (const line of lines) {
+            handleChunkText(line)
+            if (finished) return
+          }
+        }
+        if (data.done) {
+          fail(
+            typeof data.error === 'string' && data.error
+              ? `Relay: ${data.error}\n${url}\n${new Date().toISOString()}`
+              : `Strumień zakończył się bez finalnych danych\n${url}\nostatni odebrany fragment: ${lastRaw.slice(0, 200) || '(brak)'}\n${new Date().toISOString()}`,
+          )
+          return
+        }
+      } catch (err) {
+        if (aborted || controller.signal.aborted) return
+        failures += 1
+        if (failures >= MAX_POLL_FAILURES) {
+          const reason = err instanceof Error ? `${err.name}: ${err.message}` : String(err)
+          fail(`Utracono połączenie z relayem (${failures} nieudanych prób): ${reason}\nGET ${RELAY_POLL_URL}\n${new Date().toISOString()}`)
+          return
+        }
+      }
+      await sleep(POLL_INTERVAL_MS)
+    }
+  }
+
   ;(async () => {
     try {
+      relayJobId = await tryRelayStart()
+      if (aborted || controller.signal.aborted) return
+      if (relayJobId) {
+        onEvent({
+          phase: '',
+          message: `Relay serwera aktywny (job ${relayJobId.slice(0, 8)}) — serwer trzyma strumień z n8n, pobieram postęp krótkimi zapytaniami...`,
+        })
+        await pollRelay(relayJobId)
+        return
+      }
+
+      // no relay on this origin (local dev / mock) — stream straight from the browser
       const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -243,6 +353,15 @@ export function startResearchStream({ url, range, onEvent, onComplete, onError, 
       aborted = true
       clearStall()
       controller.abort()
+      // let the server drop its upstream n8n connection too
+      if (relayJobId) {
+        void fetch(RELAY_ABORT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: relayJobId }),
+          keepalive: true,
+        }).catch(() => {})
+      }
     },
   }
 }
