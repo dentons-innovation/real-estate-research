@@ -119,7 +119,7 @@ export const UI: Record<Lang, UIStrings> = {
     idleTitleAccent: 'nieruchomości',
     idleDescription:
       'Agent AI przeszukuje komunikaty prasowe, serwisy branżowe i rejestry, a znalezione transakcje zestawia w tabelę gotową do analizy i eksportu.',
-    idleCapabilities: ['14 kolumn danych', 'źródła z linkami', 'eksport do CSV'],
+    idleCapabilities: ['źródła z linkami', 'eksport do CSV'],
     idleHintPre: 'Aby rozpocząć, kliknij',
     idleHintButton: '„Rozpocznij research”',
     missionFailed: 'Research zakończony błędem',
@@ -171,7 +171,7 @@ export const UI: Record<Lang, UIStrings> = {
     idleTitleAccent: 'real estate market',
     idleDescription:
       'An AI agent scans press releases, industry portals and registers, then compiles the transactions it finds into a table ready for analysis and export.',
-    idleCapabilities: ['14 data columns', 'linked sources', 'CSV export'],
+    idleCapabilities: ['linked sources', 'CSV export'],
     idleHintPre: 'To begin, click',
     idleHintButton: '“Start research”',
     missionFailed: 'Research ended with an error',
