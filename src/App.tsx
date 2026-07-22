@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import gsap from 'gsap'
-import Sidebar, { TIME_RANGES } from './components/Sidebar'
+import Sidebar from './components/Sidebar'
 import BackgroundScene from './components/BackgroundScene'
 import IdleState from './components/IdleState'
 import SearchingState from './components/SearchingState'
@@ -21,7 +21,6 @@ const SHOW_LOG_KEY = 'dentons-re-show-log'
 export default function App() {
   const { lang, toggle, t } = useI18n()
   const [phase, setPhase] = useState<Phase>('idle')
-  const [timeRange, setTimeRange] = useState('30d')
   const [showAvatar, setShowAvatar] = useState(() => localStorage.getItem(SHOW_AVATAR_KEY) !== '0')
   const [showLog, setShowLog] = useState(() => localStorage.getItem(SHOW_LOG_KEY) !== '0')
   const [results, setResults] = useState<Transaction[]>([])
@@ -109,7 +108,8 @@ export default function App() {
     streamRef.current?.abort()
     streamRef.current = startResearchStream({
       url: N8N_SSE_WEBHOOK_URL,
-      range: timeRange,
+      // the research window is fixed backend-side (30 days); the range field stays for protocol compatibility
+      range: '30d',
       onEvent: (event) => {
         if (!runActiveRef.current) return
         // map the backend phase_id onto a frontend checkpoint (merge dedup+gaps, split deepening)
@@ -148,7 +148,7 @@ export default function App() {
         setPhase('failed')
       },
     })
-  }, [transitionTo, settleTo, appendLog, timeRange])
+  }, [transitionTo, settleTo, appendLog])
 
   const handleStop = useCallback(() => {
     if (phaseRef.current !== 'searching' || transitionPendingRef.current) return
@@ -196,16 +196,12 @@ export default function App() {
     })
   }, [])
 
-  const timeRangeLabel = TIME_RANGES.find((r) => r.value === timeRange)?.label[lang] ?? ''
-
   return (
     <div className="relative flex min-h-screen flex-col lg:h-screen lg:flex-row lg:overflow-hidden">
       <BackgroundScene />
 
       <Sidebar
         phase={phase}
-        timeRange={timeRange}
-        onTimeRangeChange={setTimeRange}
         onStart={handleStart}
         onStop={handleStop}
         onMockError={handleMockError}
@@ -247,7 +243,7 @@ export default function App() {
               showLog={showLog}
             />
           )}
-          {phase === 'results' && <ResultsTable rows={results} timeRangeLabel={timeRangeLabel} />}
+          {phase === 'results' && <ResultsTable rows={results} />}
         </div>
       </main>
     </div>

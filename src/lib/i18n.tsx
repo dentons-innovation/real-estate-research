@@ -49,8 +49,6 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 export interface UIStrings {
   // Sidebar
   brandTagline: string
-  searchParams: string
-  timeRange: string
   interfaceSection: string
   avatarToggle: string
   avatarHint: string
@@ -92,6 +90,8 @@ export interface UIStrings {
   // Results table
   resultsEyebrow: string
   resultsTitle: string
+  /** Fixed research window shown above the table (backend always searches 30 days). */
+  resultsRange: string
   resultsMarket: string
   exportCsv: string
   tableHint: string
@@ -102,8 +102,6 @@ export interface UIStrings {
 export const UI: Record<Lang, UIStrings> = {
   pl: {
     brandTagline: 'Real Estate · Polska',
-    searchParams: 'Parametry wyszukiwania',
-    timeRange: 'Zakres czasu',
     interfaceSection: 'Interfejs',
     avatarToggle: 'Awatar asystenta',
     avatarHint: 'Robot i jego komentarze podczas researchu.',
@@ -122,7 +120,7 @@ export const UI: Record<Lang, UIStrings> = {
     idleDescription:
       'Agent AI przeszukuje komunikaty prasowe, serwisy branżowe i rejestry, a znalezione transakcje zestawia w tabelę gotową do analizy i eksportu.',
     idleCapabilities: ['14 kolumn danych', 'źródła z linkami', 'eksport do CSV'],
-    idleHintPre: 'Ustaw zakres czasu i kliknij',
+    idleHintPre: 'Aby rozpocząć, kliknij',
     idleHintButton: '„Rozpocznij research”',
     missionFailed: 'Research zakończony błędem',
     missionCancelled: 'Research przerwany',
@@ -141,6 +139,7 @@ export const UI: Record<Lang, UIStrings> = {
     logStatusError: 'Błąd backendu',
     resultsEyebrow: 'Wyniki researchu',
     resultsTitle: 'Transakcje',
+    resultsRange: 'Ostatnie 30 dni',
     resultsMarket: 'rynek nieruchomości, Polska',
     exportCsv: 'Eksportuj do CSV',
     tableHint: 'Kliknij nagłówek kolumny, aby sortować · przewiń tabelę w poziomie, aby zobaczyć wszystkie kolumny',
@@ -155,8 +154,6 @@ export const UI: Record<Lang, UIStrings> = {
   },
   en: {
     brandTagline: 'Real Estate · Poland',
-    searchParams: 'Search parameters',
-    timeRange: 'Time range',
     interfaceSection: 'Interface',
     avatarToggle: 'Assistant avatar',
     avatarHint: 'The robot and its commentary during research.',
@@ -175,7 +172,7 @@ export const UI: Record<Lang, UIStrings> = {
     idleDescription:
       'An AI agent scans press releases, industry portals and registers, then compiles the transactions it finds into a table ready for analysis and export.',
     idleCapabilities: ['14 data columns', 'linked sources', 'CSV export'],
-    idleHintPre: 'Set the time range and click',
+    idleHintPre: 'To begin, click',
     idleHintButton: '“Start research”',
     missionFailed: 'Research ended with an error',
     missionCancelled: 'Research interrupted',
@@ -194,6 +191,7 @@ export const UI: Record<Lang, UIStrings> = {
     logStatusError: 'Backend error',
     resultsEyebrow: 'Research results',
     resultsTitle: 'Transactions',
+    resultsRange: 'Last 30 days',
     resultsMarket: 'real estate market, Poland',
     exportCsv: 'Export to CSV',
     tableHint: 'Click a column header to sort · scroll the table horizontally to see all columns',

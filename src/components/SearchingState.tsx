@@ -437,6 +437,13 @@ export default function SearchingState({ cancelled, failed, mission, entries, sh
 
   return (
     <div ref={rootRef} className="flex min-h-0 flex-1 flex-col items-center gap-3.5 px-4 py-5 sm:px-6 lg:px-10">
+      {/* animated spacer — grows when the console is hidden so the content glides to the vertical centre */}
+      <div
+        aria-hidden="true"
+        className={`w-full basis-0 -mb-3.5 transition-[flex-grow] duration-500 ease-out motion-reduce:transition-none ${
+          showLog ? 'grow-0' : 'grow'
+        }`}
+      />
       <p
         data-search-item
         className={`flex items-center gap-2.5 font-mono text-[11px] tracking-[0.34em] uppercase ${
@@ -465,15 +472,25 @@ export default function SearchingState({ cancelled, failed, mission, entries, sh
         <PhaseList mission={mission} cancelled={cancelled} failed={failed} />
       </div>
 
-      {/* the REAL backend log — soaks up all remaining vertical space; kept
-          mounted when hidden so entries and scroll position survive the sidebar toggle */}
+      {/* the REAL backend log — soaks up all remaining vertical space; kept mounted
+          when hidden (collapses smoothly) so entries and scroll position survive the toggle */}
       <div
         id="mission-console"
         data-search-item
-        className={`w-full max-w-5xl ${showLog ? 'min-h-[200px] flex-1' : 'hidden'}`}
+        aria-hidden={!showLog}
+        className={`w-full max-w-5xl shrink basis-0 overflow-hidden transition-[flex-grow,opacity,min-height] duration-500 ease-out motion-reduce:transition-none ${
+          showLog ? 'min-h-[200px] grow opacity-100' : 'pointer-events-none min-h-0 grow-0 opacity-0'
+        }`}
       >
         <BackendLog entries={entries} running={running} cancelled={cancelled} failed={failed} />
       </div>
+      {/* bottom counterpart of the centring spacer */}
+      <div
+        aria-hidden="true"
+        className={`w-full basis-0 -mt-3.5 transition-[flex-grow] duration-500 ease-out motion-reduce:transition-none ${
+          showLog ? 'grow-0' : 'grow'
+        }`}
+      />
     </div>
   )
 }

@@ -1,19 +1,9 @@
 import type { Phase } from '../App'
 import logo from '../dentons_logo.png'
-import { useI18n, type Localized } from '../lib/i18n'
-
-export const TIME_RANGES: Array<{ value: string; label: Localized }> = [
-  { value: '7d', label: { pl: 'Ostatnie 7 dni', en: 'Last 7 days' } },
-  { value: '30d', label: { pl: 'Ostatnie 30 dni', en: 'Last 30 days' } },
-  { value: '1m', label: { pl: 'Ostatni miesiąc', en: 'Last month' } },
-  { value: '1q', label: { pl: 'Ostatni kwartał', en: 'Last quarter' } },
-  { value: '1y', label: { pl: 'Ostatni rok', en: 'Last year' } },
-]
+import { useI18n } from '../lib/i18n'
 
 interface SidebarProps {
   phase: Phase
-  timeRange: string
-  onTimeRangeChange: (value: string) => void
   onStart: () => void
   onStop: () => void
   onMockError: () => void
@@ -23,29 +13,8 @@ interface SidebarProps {
   onToggleLog: () => void
 }
 
-function FieldLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="mb-1.5 flex items-center justify-between">
-      <span className="text-[13px] font-medium text-white/75">{children}</span>
-    </div>
-  )
-}
-
-const selectChevron = (
-  <svg
-    className="pointer-events-none absolute top-1/2 right-3 h-4 w-4 -translate-y-1/2 text-white/40"
-    viewBox="0 0 16 16"
-    fill="none"
-    aria-hidden="true"
-  >
-    <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-)
-
 export default function Sidebar({
   phase,
-  timeRange,
-  onTimeRangeChange,
   onStart,
   onStop,
   onMockError,
@@ -68,30 +37,6 @@ export default function Sidebar({
           {t.brandTagline}
         </p>
         <div className="mt-5 h-px w-full bg-gradient-to-r from-den-light/50 via-white/10 to-transparent" />
-      </div>
-
-      {/* Parameters */}
-      <div className="flex flex-col gap-5">
-        <p className="font-mono text-[10px] tracking-[0.28em] text-white/40 uppercase">{t.searchParams}</p>
-
-        <div>
-          <FieldLabel>{t.timeRange}</FieldLabel>
-          <div className="relative">
-            <select
-              value={timeRange}
-              onChange={(e) => onTimeRangeChange(e.target.value)}
-              disabled={searching || cancelled}
-              className="w-full cursor-pointer appearance-none rounded-lg border border-white/15 bg-white/5 px-3.5 py-2.5 text-sm text-white/90 transition-colors hover:border-den-light/50 focus:border-den-light focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 [&>option]:bg-den-ink [&>option]:text-white"
-            >
-              {TIME_RANGES.map((r) => (
-                <option key={r.value} value={r.value}>
-                  {r.label[lang]}
-                </option>
-              ))}
-            </select>
-            {selectChevron}
-          </div>
-        </div>
       </div>
 
       {/* Interface */}

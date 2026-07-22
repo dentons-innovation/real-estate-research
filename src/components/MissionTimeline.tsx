@@ -187,7 +187,9 @@ export default function MissionTimeline({ mission, cancelled, failed, showAvatar
   return (
     <div
       ref={rootRef}
-      className={`relative w-full ${showAvatar ? 'h-[240px] sm:h-[290px]' : 'h-[96px] sm:h-[110px]'}`}
+      className={`relative w-full transition-[height] duration-500 ease-out motion-reduce:transition-none ${
+        showAvatar ? 'h-[240px] sm:h-[290px]' : 'h-[96px] sm:h-[110px]'
+      }`}
       aria-label={t.missionMapAria}
     >
       {w > 0 && h > 0 && (

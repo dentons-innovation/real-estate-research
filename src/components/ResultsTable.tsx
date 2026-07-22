@@ -110,7 +110,7 @@ function CellContent({ column, row }: { column: ColumnDef; row: Transaction }) {
   }
 }
 
-export default function ResultsTable({ rows, timeRangeLabel }: { rows: Transaction[]; timeRangeLabel: string }) {
+export default function ResultsTable({ rows }: { rows: Transaction[] }) {
   const { lang, t } = useI18n()
   const [sort, setSort] = useState<SortState>({ key: 'dataOgloszenia', dir: 'desc' })
   const rootRef = useRef<HTMLDivElement>(null)
@@ -156,7 +156,7 @@ export default function ResultsTable({ rows, timeRangeLabel }: { rows: Transacti
             <span className="font-normal text-den-light">{t.transactionCount(rows.length)}</span>
           </h2>
           <p className="mt-1 text-[13px] text-white/45">
-            {timeRangeLabel} · {t.resultsMarket}
+            {t.resultsRange} · {t.resultsMarket}
           </p>
         </div>
 
