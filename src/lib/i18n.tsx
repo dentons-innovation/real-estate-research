@@ -293,6 +293,14 @@ const LINE_RULES: Array<[RegExp, string]> = [
   ],
   // --- frontend-generated lines ---
   [/^Łączenie z backendem \((.+)\)\.\.\.$/, 'Connecting to the backend ($1)...'],
+  [
+    /^Strumień otwarty \(HTTP (\d+), (.+)\) — czekam na dane z workflow\.\.\.$/,
+    'Stream opened (HTTP $1, $2) — waiting for workflow data...',
+  ],
+  [
+    /^Wciąż brak danych z backendu \((\d+) s od otwarcia strumienia\) — jeśli to się utrzymuje, odpowiedź jest prawdopodobnie buforowana po drodze \(proxy\/VPN\)\.$/,
+    'Still no data from the backend ($1 s since the stream opened) — if this persists, the response is likely being buffered along the way (proxy/VPN).',
+  ],
   [/^Otrzymano (\d+) rekordów — zamykam połączenie\.$/, 'Received $1 records — closing the connection.'],
   [/^Połączenie przerwane przez użytkownika\.$/, 'Connection interrupted by the user.'],
   [

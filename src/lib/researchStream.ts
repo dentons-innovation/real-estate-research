@@ -145,6 +145,17 @@ export function startResearchStream({ url, range, onEvent, onComplete, onError }
     }
   }
 
+  /** Watchdog: logs a warning every 15 s while the stream is open but silent —
+   *  makes response buffering (corporate proxy/VPN) visible in the console. */
+  let gotData = false
+  let watchdog: number | null = null
+  const stopWatchdog = () => {
+    if (watchdog !== null) {
+      window.clearInterval(watchdog)
+      watchdog = null
+    }
+  }
+
   ;(async () => {
     try {
       const response = await fetch(url, {
@@ -162,6 +173,23 @@ export function startResearchStream({ url, range, onEvent, onComplete, onError }
         return
       }
 
+      onEvent({
+        phase: '',
+        message: `Strumień otwarty (HTTP ${response.status}, ${response.headers.get('content-type') ?? 'brak content-type'}) — czekam na dane z workflow...`,
+      })
+      let silentFor = 0
+      watchdog = window.setInterval(() => {
+        if (finished || aborted || gotData) {
+          stopWatchdog()
+          return
+        }
+        silentFor += 15
+        onEvent({
+          phase: '',
+          message: `Wciąż brak danych z backendu (${silentFor} s od otwarcia strumienia) — jeśli to się utrzymuje, odpowiedź jest prawdopodobnie buforowana po drodze (proxy/VPN).`,
+        })
+      }, 15000)
+
       const reader = response.body.getReader()
       const decoder = new TextDecoder()
       let buffer = ''
@@ -169,6 +197,10 @@ export function startResearchStream({ url, range, onEvent, onComplete, onError }
       for (;;) {
         const { done, value } = await reader.read()
         if (done) break
+        if (!gotData && value && value.length > 0) {
+          gotData = true
+          stopWatchdog()
+        }
         buffer += decoder.decode(value, { stream: true })
         // process complete lines; SSE events end with \n\n but a per-line pass
         // covers both SSE and NDJSON (JSON payloads are single-line)
@@ -192,6 +224,8 @@ export function startResearchStream({ url, range, onEvent, onComplete, onError }
       if (aborted || controller.signal.aborted) return
       const reason = err instanceof Error ? `${err.name}: ${err.message}` : String(err)
       fail(`${reason}\nPOST ${url}\n${new Date().toISOString()}`)
+    } finally {
+      stopWatchdog()
     }
   })()
 
