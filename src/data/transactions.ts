@@ -1,3 +1,5 @@
+import type { Localized } from '../lib/i18n'
+
 export interface Transaction {
   dataOgloszenia: string
   dealAsset: string
@@ -19,8 +21,8 @@ export type ColumnKind = 'date' | 'value' | 'links' | 'status' | 'sector' | 'tex
 
 export interface ColumnDef {
   key: keyof Transaction
-  /** Displayed table header — Polish. */
-  label: string
+  /** Displayed table header (PL/EN). */
+  label: Localized
   /** Raw key the n8n workflow sends this field under (unchanged, so the backend needs no edits). */
   apiKey: string
   kind: ColumnKind
@@ -28,20 +30,20 @@ export interface ColumnDef {
 }
 
 export const COLUMNS: ColumnDef[] = [
-  { key: 'dataOgloszenia', label: 'Data ogłoszenia', apiKey: 'Data ogłoszenia', kind: 'date', minWidth: 128 },
-  { key: 'dealAsset', label: 'Transakcja / aktywo', apiKey: 'Deal/asset', kind: 'text', minWidth: 220 },
-  { key: 'rodzajTransakcji', label: 'Rodzaj transakcji', apiKey: 'Rodzaj transakcji', kind: 'text', minWidth: 200 },
-  { key: 'opisTransakcji', label: 'Opis transakcji', apiKey: 'Opis transakcji', kind: 'text', minWidth: 380 },
-  { key: 'buyer', label: 'Kupujący / inwestor', apiKey: 'Buyer / inwestor', kind: 'text', minWidth: 160 },
-  { key: 'seller', label: 'Sprzedający', apiKey: 'Seller / vendor', kind: 'text', minWidth: 160 },
-  { key: 'otherParties', label: 'Pozostałe strony', apiKey: 'Other parties involved', kind: 'text', minWidth: 220 },
-  { key: 'dealValue', label: 'Wartość transakcji', apiKey: 'Deal value', kind: 'value', minWidth: 140 },
-  { key: 'buyerAdvisor', label: 'Doradca prawny kupującego', apiKey: 'Buyer legal advisor', kind: 'text', minWidth: 170 },
-  { key: 'sellerAdvisor', label: 'Doradca prawny sprzedającego', apiKey: 'Seller legal advisor', kind: 'text', minWidth: 170 },
-  { key: 'otherAdvisors', label: 'Pozostali doradcy prawni', apiKey: 'Other legal advisors involved', kind: 'text', minWidth: 220 },
-  { key: 'status', label: 'Status transakcji', apiKey: 'Status transakcji', kind: 'status', minWidth: 150 },
-  { key: 'sektor', label: 'Sektor', apiKey: 'Sektor', kind: 'sector', minWidth: 130 },
-  { key: 'zrodla', label: 'Źródła informacji', apiKey: 'Źródła informacji', kind: 'links', minWidth: 260 },
+  { key: 'dataOgloszenia', label: { pl: 'Data ogłoszenia', en: 'Announcement date' }, apiKey: 'Data ogłoszenia', kind: 'date', minWidth: 128 },
+  { key: 'dealAsset', label: { pl: 'Transakcja / aktywo', en: 'Deal / asset' }, apiKey: 'Deal/asset', kind: 'text', minWidth: 220 },
+  { key: 'rodzajTransakcji', label: { pl: 'Rodzaj transakcji', en: 'Transaction type' }, apiKey: 'Rodzaj transakcji', kind: 'text', minWidth: 200 },
+  { key: 'opisTransakcji', label: { pl: 'Opis transakcji', en: 'Transaction description' }, apiKey: 'Opis transakcji', kind: 'text', minWidth: 380 },
+  { key: 'buyer', label: { pl: 'Kupujący / inwestor', en: 'Buyer / investor' }, apiKey: 'Buyer / inwestor', kind: 'text', minWidth: 160 },
+  { key: 'seller', label: { pl: 'Sprzedający', en: 'Seller / vendor' }, apiKey: 'Seller / vendor', kind: 'text', minWidth: 160 },
+  { key: 'otherParties', label: { pl: 'Pozostałe strony', en: 'Other parties' }, apiKey: 'Other parties involved', kind: 'text', minWidth: 220 },
+  { key: 'dealValue', label: { pl: 'Wartość transakcji', en: 'Deal value' }, apiKey: 'Deal value', kind: 'value', minWidth: 140 },
+  { key: 'buyerAdvisor', label: { pl: 'Doradca prawny kupującego', en: "Buyer's legal advisor" }, apiKey: 'Buyer legal advisor', kind: 'text', minWidth: 170 },
+  { key: 'sellerAdvisor', label: { pl: 'Doradca prawny sprzedającego', en: "Seller's legal advisor" }, apiKey: 'Seller legal advisor', kind: 'text', minWidth: 170 },
+  { key: 'otherAdvisors', label: { pl: 'Pozostali doradcy prawni', en: 'Other legal advisors' }, apiKey: 'Other legal advisors involved', kind: 'text', minWidth: 220 },
+  { key: 'status', label: { pl: 'Status transakcji', en: 'Transaction status' }, apiKey: 'Status transakcji', kind: 'status', minWidth: 150 },
+  { key: 'sektor', label: { pl: 'Sektor', en: 'Sector' }, apiKey: 'Sektor', kind: 'sector', minWidth: 130 },
+  { key: 'zrodla', label: { pl: 'Źródła informacji', en: 'Sources' }, apiKey: 'Źródła informacji', kind: 'links', minWidth: 260 },
 ]
 
 /** Parses "7.07.2026" (D.MM.YYYY) into a sortable timestamp. */

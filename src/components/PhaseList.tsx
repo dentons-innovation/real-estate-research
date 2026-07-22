@@ -1,5 +1,6 @@
 import type { ReactElement } from 'react'
 import { PHASES, type MissionState, type PhaseIcon } from '../lib/phases'
+import { translateResearchLabels, useI18n, type Lang, type UIStrings } from '../lib/i18n'
 
 /* małe glify 16×16, stroke = currentColor — spójne z mono-industrialnym stylem UI */
 const ICON_PATHS: Record<PhaseIcon, ReactElement> = {
@@ -66,18 +67,20 @@ function PhaseGlyph({ icon }: { icon: PhaseIcon }) {
 }
 
 /** Podpis aktywnej fazy z realnych danych backendu. */
-function activeCaption(mission: MissionState): string {
+function activeCaption(mission: MissionState, lang: Lang, t: UIStrings): string {
   const { meta } = mission
   const id = PHASES[mission.idx].id
   if (!meta) return ''
   if (id.startsWith('research_') && id !== 'research_launch') {
-    return meta.doneLabels ? `ukończone: ${meta.doneLabels}` : 'zadania w toku...'
+    if (!meta.doneLabels) return t.captionTasksRunning
+    const labels = lang === 'en' ? translateResearchLabels(meta.doneLabels) : meta.doneLabels
+    return `${t.captionCompleted}: ${labels}`
   }
   if (id === 'dedup_gaps') {
     if (meta.deepenTotal !== undefined && meta.dealsTotal !== undefined) {
-      return `${meta.deepenTotal} z ${meta.dealsTotal} z brakami`
+      return t.captionGaps(meta.deepenTotal, meta.dealsTotal)
     }
-    if (meta.dealsTotal !== undefined) return `${meta.dealsTotal} unikalnych transakcji`
+    if (meta.dealsTotal !== undefined) return t.captionUnique(meta.dealsTotal)
     return ''
   }
   if (id.startsWith('deepening') && meta.dealIndex !== undefined && meta.dealTotal !== undefined) {
@@ -93,10 +96,11 @@ interface PhaseListProps {
 }
 
 export default function PhaseList({ mission, cancelled, failed }: PhaseListProps) {
-  const caption = activeCaption(mission)
+  const { lang, t } = useI18n()
+  const caption = activeCaption(mission, lang, t)
   const danger = cancelled || failed
   return (
-    <ol className="grid w-full grid-cols-2 gap-1.5 sm:grid-cols-3 lg:grid-cols-6" aria-label="Fazy misji">
+    <ol className="grid w-full grid-cols-2 gap-1.5 sm:grid-cols-3 lg:grid-cols-6" aria-label={t.phaseListAria}>
       {PHASES.map((p, i) => {
         const active = i === mission.idx
         const done = i < mission.idx || (active && mission.progress >= 1 && i === PHASES.length - 1)
@@ -110,14 +114,14 @@ export default function PhaseList({ mission, cancelled, failed }: PhaseListProps
         return (
           <li
             key={p.id}
-            title={p.listLabel}
+            title={p.listLabel[lang]}
             className={`flex items-center gap-2 rounded-lg border px-2.5 py-1.5 transition-colors duration-500 ${tone}`}
           >
             <PhaseGlyph icon={p.icon} />
             <span className="min-w-0 flex-1">
               <span className="flex items-baseline gap-1.5 font-mono text-[9.5px] tracking-[0.1em] uppercase">
                 <span className="opacity-60">{p.num}</span>
-                <span className="truncate">{p.label}</span>
+                <span className="truncate">{p.label[lang]}</span>
                 {done && (
                   <svg className="ml-auto h-2.5 w-2.5 shrink-0" viewBox="0 0 10 10" fill="none" aria-hidden="true">
                     <path d="M1.5 5.5 4 8l4.5-6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />

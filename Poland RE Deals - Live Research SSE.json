@@ -1,31 +1,37 @@
 {
-  "name": "Poland RE Deals — Live Research SSE",
+  "name": "Poland RE Deals - Live Research SSE",
   "nodes": [
     {
       "parameters": {
-        "content": "## Poland RE Deals — LIVE backend SSE (Mapa Misji)\n\nPrawdziwy research (Tavily Research + Azure GPT) streamowany do frontendu jako 10 faz misji.\n\n**Uruchomienie:**\n1. Zaimportuj i **aktywuj** workflow (wymaga n8n ≥ 1.94, streaming Respond to Webhook). To JEDYNY workflow projektu na ścieżce `POST /webhook/research-sse`.\n2. Frontend bez zmian: `VITE_N8N_SSE_WEBHOOK_URL` wskazuje na `/webhook/research-sse`.\n3. **Jednorazowo utwórz Data Table `research_stop`** (kolumna `run_id`, String) i wskaż ją w 3 węzłach Data Table — szczegóły w sticky STOP.\n4. Do szybkich testów frontendu bez n8n służy `scripts/mock-sse-server.mjs` w repo aplikacji (streamuje identyczny protokół lokalnie).\n\n**Anty-timeout:** n8n cloud ucina strumień po ~2 min ciszy, dlatego pogłębianie działa w pętli per-deal i wysyła event co ~30–60 s. Jeśli mimo to strumień się urwie, zmniejsz `max_queries_per_deal` (→2) i `max_links_per_query` (→1) w ⚙️ Config albo przełącz `research_model` na `mini`.\n\n**Okno czasowe:** na razie stałe 30 dni (`days_back` w ⚙️ Config); parametr `range` z frontendu jest ignorowany.",
+        "content": "## Poland RE Deals — LIVE backend SSE (Mapa Misji)\n\nPrawdziwy research (Tavily Research + Azure GPT) streamowany do frontendu jako 10 faz misji.\n\n**Uruchomienie:**\n1. Zaimportuj i **aktywuj** workflow (wymaga n8n ≥ 1.94, streaming Respond to Webhook). To JEDYNY workflow projektu na ścieżce `POST /webhook/research-sse`.\n2. Frontend bez zmian: `VITE_N8N_SSE_WEBHOOK_URL` wskazuje na `/webhook/research-sse`.\n3. Do szybkich testów frontendu bez n8n służy `scripts/mock-sse-server.mjs` w repo aplikacji (streamuje identyczny protokół lokalnie).\n\n**Anty-timeout:** n8n cloud ucina strumień po ~2 min ciszy, dlatego pogłębianie działa w pętli per-deal i wysyła event co ~30–60 s. Jeśli mimo to strumień się urwie, zmniejsz `max_queries_per_deal` (→2) i `max_links_per_query` (→1) w ⚙️ Config albo przełącz `research_model` na `mini`.\n\n**Okno czasowe:** na razie stałe 30 dni (`days_back` w ⚙️ Config); parametr `range` z frontendu jest ignorowany.",
         "height": 620,
         "width": 560,
         "color": 4
       },
-      "id": "cccc2222-0000-4000-8000-000000000001",
+      "id": "1ad2c414-bd13-4216-86d7-cd1c95a7cd63",
       "name": "Sticky · Uruchomienie",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
-      "position": [-3160, -560]
+      "position": [
+        496,
+        -400
+      ]
     },
     {
       "parameters": {
-        "content": "## Protokół strumienia (kontrakt z frontendem)\n\nEvent postępu: `{\"phase_id\", \"phase\", \"message\", \"progress?\", ...meta}`.\n\n**10 phase_id w kolejności timeline'u (= grupy sticky na canvasie):**\n1. `init` — połączenie\n2. `research_launch` — start 3 zadań (meta: total)\n3–5. `research_1..3` — heartbeat co 30 s; ID = liczba UKOŃCZONYCH zadań + 1 (meta: completed, total, done_labels z nazwami researchy)\n6. `dedup` — scalanie (meta: deals_total)\n7. `gap_analysis` — analiza braków (meta: deepen_total, deals_total)\n8. `deepening` — pętla per-deal, 3 eventy/deal (meta: progress 0..1, deal, deal_index, deal_total, sources)\n9. `compile` — budowa tabeli\n10. `done` — gotowe (tuż przed finałem)\n\n**Finał** = czysta tablica JSON z kluczami kolumn („Data ogłoszenia”, „Deal/asset”, …) — frontend renderuje tabelę i sam robi CSV. Pusty research → `[]`, nie zerwany strumień. Starsi klienci ignorują nowe pola (phase/message zostają).\n\n**Stop:** frontend startuje research z `{range, run_id}`; `POST /webhook/research-sse-stop` z `{run_id}` zapisuje flagę w Data Table, a egzekucja kończy się przy najbliższym checkpoincie (pętla pollingu / pętla per-deal).",
+        "content": "## Protokół strumienia (kontrakt z frontendem)\n\nEvent postępu: `{\"phase_id\", \"phase\", \"message\", \"progress?\", ...meta}`.\n\n**10 phase_id w kolejności timeline'u (= grupy sticky na canvasie):**\n1. `init` — połączenie\n2. `research_launch` — start 3 zadań (meta: total)\n3–5. `research_1..3` — heartbeat co 30 s; ID = liczba UKOŃCZONYCH zadań + 1 (meta: completed, total, done_labels z nazwami researchy)\n6. `dedup` — scalanie (meta: deals_total)\n7. `gap_analysis` — analiza braków (meta: deepen_total, deals_total)\n8. `deepening` — pętla per-deal, 3 eventy/deal (meta: progress 0..1, deal, deal_index, deal_total, sources)\n9. `compile` — budowa tabeli\n10. `done` — gotowe (tuż przed finałem)\n\n**Finał** = czysta tablica JSON z kluczami kolumn („Data ogłoszenia”, „Deal/asset”, …) — frontend renderuje tabelę i sam robi CSV. Pusty research → `[]`, nie zerwany strumień. Starsi klienci ignorują nowe pola (phase/message zostają).",
         "height": 620,
         "width": 640,
         "color": 5
       },
-      "id": "cccc2222-0000-4000-8000-000000000002",
+      "id": "876a928b-c683-4efd-88a8-f2159078f805",
       "name": "Sticky · Protokół",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
-      "position": [-2560, -560]
+      "position": [
+        1104,
+        -400
+      ]
     },
     {
       "parameters": {
@@ -34,11 +40,14 @@
         "width": 480,
         "color": 7
       },
-      "id": "cccc2222-0000-4000-8000-000000000030",
+      "id": "49cffbe2-717b-422f-a04c-20f45ae1bd7b",
       "name": "Grupa · INIT",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
-      "position": [-2460, -80]
+      "position": [
+        880,
+        288
+      ]
     },
     {
       "parameters": {
@@ -47,11 +56,14 @@
         "width": 880,
         "color": 4
       },
-      "id": "cccc2222-0000-4000-8000-000000000031",
+      "id": "abfeec1c-1963-4e5b-8101-7e165ff1123d",
       "name": "Grupa · RESEARCH_LAUNCH",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
-      "position": [-1960, -80]
+      "position": [
+        1376,
+        288
+      ]
     },
     {
       "parameters": {
@@ -60,11 +72,14 @@
         "width": 880,
         "color": 5
       },
-      "id": "cccc2222-0000-4000-8000-000000000032",
+      "id": "db9d6200-5290-4c2e-ac7e-0a05823a3f2f",
       "name": "Grupa · RESEARCH",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
-      "position": [-1080, -320]
+      "position": [
+        2256,
+        48
+      ]
     },
     {
       "parameters": {
@@ -73,11 +88,14 @@
         "width": 400,
         "color": 6
       },
-      "id": "cccc2222-0000-4000-8000-000000000033",
+      "id": "a9da5b9f-dc42-4466-946f-4b4d9c474cee",
       "name": "Grupa · DEDUP",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
-      "position": [-200, -80]
+      "position": [
+        3136,
+        288
+      ]
     },
     {
       "parameters": {
@@ -86,24 +104,29 @@
         "width": 420,
         "color": 2
       },
-      "id": "cccc2222-0000-4000-8000-000000000034",
+      "id": "da9e0374-a6f9-4a8a-bd13-fa5f96402ee7",
       "name": "Grupa · GAP_ANALYSIS",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
-      "position": [230, -80]
+      "position": [
+        3568,
+        288
+      ]
     },
     {
       "parameters": {
         "content": "## 8 · DEEPENING\nPętla per-deal (anty-timeout): plan zapytań LLM → wyszukiwania Tavily → ekstrakcja źródeł → LLM uzupełnia wyłącznie brakujące pola. 3 eventy na deal, `progress = deepen_idx/deepen_total`.\n\n`phase_id: deepening`",
         "height": 600,
-        "width": 3100,
-        "color": 1
+        "width": 3100
       },
-      "id": "cccc2222-0000-4000-8000-000000000035",
+      "id": "88ea0711-d712-4341-ba6c-e305f7079ec4",
       "name": "Grupa · DEEPENING",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
-      "position": [680, -320]
+      "position": [
+        4016,
+        48
+      ]
     },
     {
       "parameters": {
@@ -112,11 +135,14 @@
         "width": 1120,
         "color": 3
       },
-      "id": "cccc2222-0000-4000-8000-000000000036",
+      "id": "dbc945f4-2504-47e1-a769-357c53b825ce",
       "name": "Grupa · COMPILE_DONE",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
-      "position": [1100, 300]
+      "position": [
+        4688,
+        800
+      ]
     },
     {
       "parameters": {
@@ -127,226 +153,15 @@
           "allowedOrigins": "*"
         }
       },
-      "id": "cccc2222-0000-4000-8000-000000000003",
+      "id": "b4774740-281b-460e-bfae-68ec89213bb4",
       "name": "Research SSE Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "position": [-2380, 96],
+      "position": [
+        960,
+        464
+      ],
       "webhookId": "cccc2222-0000-4000-8000-00000000ffff"
-    },
-    {
-      "parameters": {
-        "content": "## STOP · zatrzymanie researchu z frontendu\n\nFrontend przy „Zatrzymaj research” / „Mock Error” wysyła `POST /webhook/research-sse-stop` z `{run_id}` (ten sam `run_id` przychodzi w body przy starcie i siedzi w ⚙️ Config).\n\nFlaga trafia do **Data Table** `research_stop` (kolumna `run_id`, typ String). Główna egzekucja sprawdza flagę:\n- w pętli pollingu researchu (co 30 s),\n- na starcie każdej iteracji pętli per-deal,\n\ni gdy flaga istnieje — wysyła event „Przerwano” i kończy egzekucję (bez finalnej tabeli).\n\n**Setup po imporcie (jednorazowo):**\n1. Utwórz Data Table `research_stop` z kolumną `run_id` (String).\n2. Wskaż tę tabelę w węzłach: „Zapisz flagę stopu”, „Stop flag? (research)”, „Stop flag? (deal)”.\n\nStare wiersze flag można czyścić ręcznie — każdy przebieg ma unikalny run_id, więc nie kolidują.",
-        "height": 400,
-        "width": 720,
-        "color": 3
-      },
-      "id": "cccc2222-0000-4000-8000-000000000040",
-      "name": "Grupa · STOP",
-      "type": "n8n-nodes-base.stickyNote",
-      "typeVersion": 1,
-      "position": [-2520, 480]
-    },
-    {
-      "parameters": {
-        "httpMethod": "POST",
-        "path": "research-sse-stop",
-        "responseMode": "onReceived",
-        "options": {
-          "allowedOrigins": "*"
-        }
-      },
-      "id": "cccc2222-0000-4000-8000-000000000041",
-      "name": "Stop Webhook",
-      "type": "n8n-nodes-base.webhook",
-      "typeVersion": 2.1,
-      "position": [-2380, 620],
-      "webhookId": "cccc2222-0000-4000-8000-00000000fffe"
-    },
-    {
-      "parameters": {
-        "resource": "row",
-        "operation": "insert",
-        "dataTableId": {
-          "__rl": true,
-          "mode": "list",
-          "value": ""
-        },
-        "columns": {
-          "mappingMode": "defineBelow",
-          "value": {
-            "run_id": "={{ $json.body.run_id }}"
-          },
-          "matchingColumns": [],
-          "schema": []
-        },
-        "options": {}
-      },
-      "id": "cccc2222-0000-4000-8000-000000000042",
-      "name": "Zapisz flagę stopu",
-      "type": "n8n-nodes-base.dataTable",
-      "typeVersion": 1,
-      "position": [-2100, 620]
-    },
-    {
-      "parameters": {
-        "resource": "row",
-        "operation": "get",
-        "dataTableId": {
-          "__rl": true,
-          "mode": "list",
-          "value": ""
-        },
-        "filters": {
-          "conditions": [
-            {
-              "keyName": "run_id",
-              "condition": "eq",
-              "keyValue": "={{ $('⚙️ Config').first().json.run_id }}"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "id": "cccc2222-0000-4000-8000-000000000043",
-      "name": "Stop flag? (research)",
-      "type": "n8n-nodes-base.dataTable",
-      "typeVersion": 1,
-      "position": [-860, -300],
-      "alwaysOutputData": true
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "loose",
-            "version": 2
-          },
-          "conditions": [
-            {
-              "id": "c",
-              "leftValue": "={{ !!$json.run_id }}",
-              "rightValue": "",
-              "operator": {
-                "type": "boolean",
-                "operation": "true",
-                "singleValue": true
-              }
-            }
-          ],
-          "combinator": "and"
-        },
-        "options": {}
-      },
-      "id": "cccc2222-0000-4000-8000-000000000044",
-      "name": "Przerwać? (research)",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2.2,
-      "position": [-640, -300]
-    },
-    {
-      "parameters": {
-        "jsCode": "// Przywraca itemy statusów researchu po detourze przez check flagi stopu.\nreturn $('Check research statuses').all().map((i) => ({ json: i.json }));"
-      },
-      "id": "cccc2222-0000-4000-8000-000000000045",
-      "name": "Restore poll items",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [-420, -300]
-    },
-    {
-      "parameters": {
-        "respondWith": "json",
-        "responseBody": "{\"phase\": \"Przerwano\", \"message\": \"Otrzymałem żądanie zatrzymania — przerywam research i kończę egzekucję.\"}",
-        "options": {}
-      },
-      "id": "cccc2222-0000-4000-8000-000000000046",
-      "name": "SSE · Aborted (research)",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1.5,
-      "position": [-640, -460]
-    },
-    {
-      "parameters": {
-        "resource": "row",
-        "operation": "get",
-        "dataTableId": {
-          "__rl": true,
-          "mode": "list",
-          "value": ""
-        },
-        "filters": {
-          "conditions": [
-            {
-              "keyName": "run_id",
-              "condition": "eq",
-              "keyValue": "={{ $('⚙️ Config').first().json.run_id }}"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "id": "cccc2222-0000-4000-8000-000000000047",
-      "name": "Stop flag? (deal)",
-      "type": "n8n-nodes-base.dataTable",
-      "typeVersion": 1,
-      "position": [1150, -200],
-      "alwaysOutputData": true
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "loose",
-            "version": 2
-          },
-          "conditions": [
-            {
-              "id": "c",
-              "leftValue": "={{ !!$json.run_id }}",
-              "rightValue": "",
-              "operator": {
-                "type": "boolean",
-                "operation": "true",
-                "singleValue": true
-              }
-            }
-          ],
-          "combinator": "and"
-        },
-        "options": {}
-      },
-      "id": "cccc2222-0000-4000-8000-000000000048",
-      "name": "Przerwać? (deal)",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2.2,
-      "position": [1370, -200]
-    },
-    {
-      "parameters": {
-        "jsCode": "// Przywraca deal bieżącej iteracji po detourze przez check flagi stopu.\nreturn [{ json: $('SSE · Deal progress').first().json }];"
-      },
-      "id": "cccc2222-0000-4000-8000-000000000049",
-      "name": "Restore deal item",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [1590, -200]
-    },
-    {
-      "parameters": {
-        "respondWith": "json",
-        "responseBody": "{\"phase\": \"Przerwano\", \"message\": \"Otrzymałem żądanie zatrzymania — przerywam research i kończę egzekucję.\"}",
-        "options": {}
-      },
-      "id": "cccc2222-0000-4000-8000-00000000004a",
-      "name": "SSE · Aborted (deal)",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1.5,
-      "position": [1370, -380]
     },
     {
       "parameters": {
@@ -354,22 +169,19 @@
         "responseBody": "{\"phase_id\": \"init\", \"phase\": \"Inicjalizacja\", \"message\": \"Połączono z backendem — rozpoczynam deep research rynku nieruchomości w Polsce (okno: ostatnie 30 dni)...\"}",
         "options": {}
       },
-      "id": "cccc2222-0000-4000-8000-000000000004",
+      "id": "e36924c1-8e86-4231-9fb4-a0e2bbf2859f",
       "name": "SSE · Start Discovery",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
-      "position": [-2160, 96]
+      "position": [
+        1184,
+        464
+      ]
     },
     {
       "parameters": {
         "assignments": {
           "assignments": [
-            {
-              "id": "c0",
-              "name": "run_id",
-              "type": "string",
-              "value": "={{ $json.body.run_id || '' }}"
-            },
             {
               "id": "c1",
               "name": "days_back",
@@ -410,21 +222,27 @@
         },
         "options": {}
       },
-      "id": "cccc2222-0000-4000-8000-000000000005",
+      "id": "811ae247-f614-4e5d-97a6-0a82622c4f0e",
       "name": "⚙️ Config",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
-      "position": [-1940, 96]
+      "position": [
+        1408,
+        464
+      ]
     },
     {
       "parameters": {
         "jsCode": "// STAGE 1 - three focused Tavily Research tasks. Each digs deep in its own\n// slice; duplicates are merged later, so overlap is harmless.\nconst cfg = $input.first().json;\nconst days = Number(cfg.days_back) || 30;\nconst start = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);\n\nconst COMMON =\n  ` between ${start} and today. ` +\n  `For every transaction give: announcement date (YYYY-MM-DD), asset name, transaction type, one-sentence ` +\n  `description, buyer, seller, other parties, deal value exactly as stated, buyer's legal advisor, seller's ` +\n  `legal advisor, other legal advisors, status, sector (office/retail/logistics-industrial/residential/land/hotel), ` +\n  `and the source URLs. STRICT RULE: report only facts stated explicitly in the sources; leave a field empty ` +\n  `if the sources do not state it; every transaction MUST have at least one source URL. ` +\n  `Exclude lease deals, market reports and transactions outside Poland.`;\n\nconst FOCUSES = [\n  `List ALL sales and acquisitions of real estate announced in Poland: office buildings, shopping centres and ` +\n  `retail parks, logistics and warehouse assets or portfolios, residential/PRS portfolios, land plots and hotels. ` +\n  `Prioritise Polish and CEE trade press (eurobuildcee.com, property-forum.eu, propertynews.pl).` + COMMON,\n\n  `List ALL real estate FINANCING and REFINANCING transactions and real estate joint ventures announced in ` +\n  `Poland: secured loans, portfolio financings, refinancings of buildings or portfolios, forward funding deals ` +\n  `and JV platforms. Include the lender banks as other parties.` + COMMON,\n\n  `List ALL real estate transactions in Poland announced on the websites and news sections of these law firms: ` +\n  `dentons.com, cms.law, gtlaw.com, wolftheiss.com, bakermckenzie.com, cliffordchance.com, rzmlaw.com (Rymarz ` +\n  `Zdort Maruta), dzp.pl (Domanski Zakrzewski Palinka), whitecase.com, dlapiper.com, gide.com, pinsentmasons.com. ` +\n  `These announcements always name the legal advisors - capture them precisely.` + COMMON,\n];\n\n// Tavily output_schema rules: ROOT may contain ONLY 'properties'/'required';\n// EVERY property MUST have a 'description'.\nconst output_schema = JSON.stringify({\n  properties: {\n    transactions: {\n      type: 'array',\n      description: 'List of individual real estate transactions announced in Poland within the requested time window. One entry per transaction.',\n      items: {\n        type: 'object',\n        description: 'A single real estate transaction in Poland.',\n        properties: {\n          announcement_date: { type: 'string', description: 'Date the transaction was announced, YYYY-MM-DD. Empty string if the sources do not state it.' },\n          deal_asset: { type: 'string', description: 'Name of the asset or portfolio (e.g. \"P180 office building, Warsaw\").' },\n          transaction_type: { type: 'string', description: 'One of: sale, acquisition, financing, JV. Empty string if unclear.' },\n          description: { type: 'string', description: 'One-sentence factual description paraphrased from the sources.' },\n          buyer: { type: 'string', description: 'Buyer / investor. Empty string if not stated.' },\n          seller: { type: 'string', description: 'Seller / vendor. Empty string if not stated.' },\n          other_parties: { type: 'string', description: 'Other parties involved (lenders, JV partners, agents). Empty string if none stated.' },\n          deal_value: { type: 'string', description: 'Deal value copied exactly as written (e.g. \"EUR 100 million\"). Empty string if not disclosed.' },\n          buyer_legal_advisor: { type: 'string', description: 'Law firm advising the buyer. Empty string if not stated.' },\n          seller_legal_advisor: { type: 'string', description: 'Law firm advising the seller. Empty string if not stated.' },\n          other_legal_advisors: { type: 'string', description: 'Other legal advisors involved. Empty string if none stated.' },\n          status: { type: 'string', description: 'One of: completed, signed, announced. Empty string if unclear.' },\n          sector: { type: 'string', description: 'One of: office, retail, logistics-industrial, residential, land, hotel, not identified. Judge by the asset itself.' },\n          source_urls: { type: 'array', description: 'Direct URLs of articles or announcements describing THIS transaction. At least one URL is mandatory.', items: { type: 'string', description: 'A single source URL.' } },\n        },\n        required: ['deal_asset', 'source_urls'],\n      },\n    },\n  },\n  required: ['transactions'],\n});\n\nreturn FOCUSES.map((research_input) => ({ json: {\n  research_input,\n  output_schema,\n  model: String(cfg.research_model || 'pro'),\n} }));"
       },
-      "id": "cccc2222-0000-4000-8000-000000000006",
+      "id": "9e4aa5a0-ddde-4d5f-a06d-f4437d458579",
       "name": "Prepare research tasks",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [-1720, 96]
+      "position": [
+        1616,
+        464
+      ]
     },
     {
       "parameters": {
@@ -432,11 +250,14 @@
         "responseBody": "{\"phase_id\": \"research_launch\", \"phase\": \"Start researchu\", \"message\": \"Uruchamiam 3 równoległe zadania deep research: sprzedaże i przejęcia · finansowania, refinansowania i JV · komunikaty kancelarii prawnych...\", \"total\": 3}",
         "options": {}
       },
-      "id": "cccc2222-0000-4000-8000-000000000007",
+      "id": "4318dc29-8cc4-41a1-99d2-60ee48f9f776",
       "name": "SSE · Research tasks launched",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
-      "position": [-1500, 96]
+      "position": [
+        1840,
+        464
+      ]
     },
     {
       "parameters": {
@@ -447,11 +268,14 @@
           "output_schema": "={{ $json.output_schema }}"
         }
       },
-      "id": "cccc2222-0000-4000-8000-000000000008",
+      "id": "824266cb-ea92-42f7-9462-7ed987e14cdb",
       "name": "Tavily · Research create",
       "type": "@tavily/n8n-nodes-tavily.tavily",
       "typeVersion": 1,
-      "position": [-1280, 96],
+      "position": [
+        2064,
+        464
+      ],
       "credentials": {
         "tavilyApi": {
           "id": "FMZKErZFUWBxVewS",
@@ -463,11 +287,14 @@
       "parameters": {
         "amount": 30
       },
-      "id": "cccc2222-0000-4000-8000-000000000009",
+      "id": "54da08fc-9fdb-4590-9f09-90a068fb894d",
       "name": "Wait 30s",
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
-      "position": [-1060, 96],
+      "position": [
+        2288,
+        464
+      ],
       "webhookId": "live-sse-research-wait-01"
     },
     {
@@ -476,11 +303,14 @@
         "operation": "status",
         "requestId": "={{ $json.request_id }}"
       },
-      "id": "cccc2222-0000-4000-8000-00000000000a",
+      "id": "fdded889-8337-40e6-89da-2a23334c6731",
       "name": "Tavily · Research status",
       "type": "@tavily/n8n-nodes-tavily.tavily",
       "typeVersion": 1,
-      "position": [-840, 96],
+      "position": [
+        2496,
+        464
+      ],
       "credentials": {
         "tavilyApi": {
           "id": "FMZKErZFUWBxVewS",
@@ -492,11 +322,14 @@
       "parameters": {
         "jsCode": "// The loop spins as ONE batch: items leave only when EVERY research task\n// is finished, so downstream nodes execute exactly once. Progress counters\n// and research labels feed the SSE heartbeat (phase_id research_1..3).\nconst LABELS = ['sprzedaże i przejęcia', 'finansowania i JV', 'kancelarie prawne']; // order = FOCUSES\nconst items = $input.all();\nconst done = (s) => s === 'completed' || s === 'failed';\nconst completed = items.filter((i) => done(i.json.status)).length;\nconst allDone = items.length > 0 && completed === items.length;\nconst doneLabels = items.map((i, idx) => (done(i.json.status) ? LABELS[idx] : null)).filter(Boolean).join(', ');\nreturn items.map((i, idx) => ({ json: { ...i.json, research_label: LABELS[idx] || '', done_labels: doneLabels, all_done: allDone, completed_count: completed, total_count: items.length } }));"
       },
-      "id": "cccc2222-0000-4000-8000-00000000000b",
+      "id": "f48f2cfc-9cce-4e0a-8713-4d416bbb1f67",
       "name": "Check research statuses",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [-620, 96]
+      "position": [
+        2720,
+        464
+      ]
     },
     {
       "parameters": {
@@ -523,11 +356,14 @@
         },
         "options": {}
       },
-      "id": "cccc2222-0000-4000-8000-00000000000c",
+      "id": "822165db-313d-4071-9549-4eb8fdd78f5d",
       "name": "Still running?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
-      "position": [-400, 96]
+      "position": [
+        2944,
+        464
+      ]
     },
     {
       "parameters": {
@@ -535,21 +371,27 @@
         "responseBody": "={{ JSON.stringify({ phase_id: 'research_' + Math.min($json.completed_count + 1, 3), phase: 'Deep research', message: 'Deep research w toku — ukończono ' + $json.completed_count + ' z ' + $json.total_count + ' zadań badawczych' + ($json.done_labels ? ' (' + $json.done_labels + ')' : '') + '. Kolejne sprawdzenie za 30 sekund...', completed: $json.completed_count, total: $json.total_count, done_labels: $json.done_labels }) }}",
         "options": {}
       },
-      "id": "cccc2222-0000-4000-8000-00000000000d",
+      "id": "8bcca5d2-f0c2-4ce3-9f37-cb0319e9e041",
       "name": "SSE · Research heartbeat",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
-      "position": [-620, -160]
+      "position": [
+        2720,
+        208
+      ]
     },
     {
       "parameters": {
         "jsCode": "// Parses the structured content of all research passes, enforces the time\n// window, drops source-less deals (zero-hallucination rule) and merges\n// duplicates found by different passes into single deals.\nconst cfg = $('⚙️ Config').first().json;\nconst cutoff = new Date(Date.now() - (Number(cfg.days_back) || 30) * 24 * 60 * 60 * 1000);\nconst norm = (s) => String(s ?? '').toLowerCase().replace(/\\s+/g, ' ').trim();\n\nconst raw = [];\nfor (const item of $input.all()) {\n  const j = item.json || {};\n  if (j.status && j.status !== 'completed') continue;\n  let content = j.content;\n  if (typeof content === 'string') { try { content = JSON.parse(content); } catch { continue; } }\n  for (const t of (content && content.transactions) || []) {\n    const urls = (t.source_urls || []).map((u) => String(u).trim()).filter(Boolean);\n    if (urls.length === 0) continue;               // no source, no row\n    if (!norm(t.deal_asset)) continue;             // unnamed deal is unverifiable\n    let announced = '';\n    if (t.announcement_date) {\n      const d = new Date(t.announcement_date);\n      if (!isNaN(d.getTime())) {\n        if (d < cutoff) continue;                  // outside the window\n        announced = d.toISOString().slice(0, 10);\n      }\n    }\n    raw.push({ ...t, announcement_date: announced, urls });\n  }\n}\n\n// Merge duplicates across passes: same asset (containment match) + compatible buyer.\nconst groups = [];\nconst tokens = (s) => norm(s).split(/[^a-z0-9\\u00e0-\\u017f]+/).filter((w) => w.length >= 4);\nconst sameDeal = (a, b) => {\n  const ta = norm(a.deal_asset), tb = norm(b.deal_asset);\n  const assetMatch = ta === tb ||\n    (ta.length > 6 && tb.length > 6 && (ta.includes(tb) || tb.includes(ta))) ||\n    (tokens(ta).filter((w) => tokens(tb).includes(w)).length >= 2);\n  if (!assetMatch) return false;\n  const ba = norm(a.buyer), bb = norm(b.buyer);\n  if (!ba || !bb) return true;\n  return ba.includes(bb) || bb.includes(ba);\n};\n\nconst FIELDS = ['announcement_date','deal_asset','transaction_type','description','buyer','seller',\n  'other_parties','deal_value','buyer_legal_advisor','seller_legal_advisor','other_legal_advisors',\n  'status','sector'];\n\nfor (const t of raw) {\n  let g = groups.find((x) => sameDeal(x, t));\n  if (!g) { g = { ...Object.fromEntries(FIELDS.map((f) => [f, ''])), urls: [] }; groups.push(g); }\n  for (const f of FIELDS) {\n    const v = String(t[f] || '').trim();\n    if (!v || v === 'not identified') continue;\n    if (!g[f]) g[f] = v;\n    else if (f === 'announcement_date' && v < g[f]) g[f] = v;  // earliest date wins\n  }\n  for (const u of t.urls) if (!g.urls.includes(u)) g.urls.push(u);\n}\n\nconsole.log(`Discovery: ${raw.length} raw entries -> ${groups.length} unique deals`);\nif (groups.length === 0) {\n  // Nothing found: keep one placeholder item flowing so the stream still ends\n  // with an (empty) final table instead of dying mid-flight.\n  return [{ json: { deal_id: -1, _empty: true, deals_total: 0, ...Object.fromEntries(FIELDS.map((f) => [f, ''])), sources: '' } }];\n}\nreturn groups.map((g, idx) => ({ json: {\n  deal_id: idx,\n  ...Object.fromEntries(FIELDS.map((f) => [f, g[f]])),\n  sector: g.sector || 'not identified',\n  sources: g.urls.join('; '),\n  deals_total: groups.length,\n} }));"
       },
-      "id": "cccc2222-0000-4000-8000-00000000000e",
+      "id": "7ffd9daa-2f7d-420d-a36b-af6076065b2c",
       "name": "Research → deals",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [-180, 96]
+      "position": [
+        3168,
+        464
+      ]
     },
     {
       "parameters": {
@@ -557,21 +399,27 @@
         "responseBody": "={{ JSON.stringify({ phase_id: 'dedup', phase: 'Scalanie wyników', message: 'Research zakończony — po scaleniu duplikatów mam ' + $json.deals_total + ' unikalnych transakcji. Sprawdzam kompletność danych...', deals_total: $json.deals_total }) }}",
         "options": {}
       },
-      "id": "cccc2222-0000-4000-8000-00000000000f",
+      "id": "3f4d6150-a868-4a90-8679-1bf23f8192d6",
       "name": "SSE · Deals merged",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
-      "position": [40, 96]
+      "position": [
+        3376,
+        464
+      ]
     },
     {
       "parameters": {
         "jsCode": "// Flags deals worth a deepening pass: anything with a data gap the client\n// cares about (advisors, seller, value, date), capped by deepen_limit.\n// deepen_idx numbers the flagged deals 1..N for the per-deal progress events.\nconst cfg = $('⚙️ Config').first().json;\nconst enabled = cfg.enable_deepening === true || String(cfg.enable_deepening) === 'true';\nconst limit = Number(cfg.deepen_limit) || 15;\n\nlet used = 0;\nconst out = $input.all().map((item) => {\n  const r = item.json;\n  if (r._empty) return { json: { ...r, needs_deepen: false, gaps: '' } };\n  const gaps = [];\n  if (!r.buyer_legal_advisor) gaps.push('buyer_legal_advisor');\n  if (!r.seller_legal_advisor) gaps.push('seller_legal_advisor');\n  if (!r.seller) gaps.push('seller');\n  if (!r.deal_value) gaps.push('deal_value');\n  if (!r.announcement_date) gaps.push('announcement_date');\n  if (!r.other_parties) gaps.push('other_parties');\n  const needs_deepen = enabled && gaps.length > 0 && used < limit;\n  if (needs_deepen) used++;\n  return { json: { ...r, needs_deepen, deepen_idx: needs_deepen ? used : 0, gaps: gaps.join(', ') } };\n});\nconst deepenTotal = out.filter((o) => o.json.needs_deepen).length;\nreturn out.map((o) => ({ json: { ...o.json, deepen_total: deepenTotal } }));"
       },
-      "id": "cccc2222-0000-4000-8000-000000000010",
+      "id": "ffcda38b-55e0-4cd1-9df3-4c5a36bf833a",
       "name": "Mark for deepening",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [260, 96]
+      "position": [
+        3600,
+        464
+      ]
     },
     {
       "parameters": {
@@ -579,11 +427,14 @@
         "responseBody": "={{ JSON.stringify({ phase_id: 'gap_analysis', phase: 'Analiza braków', message: $json.deepen_total + ' z ' + $json.deals_total + ' transakcji ma braki w danych (doradcy prawni, wartość, daty) — pogłębiam je jedna po drugiej...', deepen_total: $json.deepen_total, deals_total: $json.deals_total }) }}",
         "options": {}
       },
-      "id": "cccc2222-0000-4000-8000-000000000011",
+      "id": "f7442620-f226-49d3-ab47-1dba6915246c",
       "name": "SSE · Deepening start",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
-      "position": [480, 96]
+      "position": [
+        3824,
+        464
+      ]
     },
     {
       "parameters": {
@@ -610,22 +461,27 @@
         },
         "options": {}
       },
-      "id": "cccc2222-0000-4000-8000-000000000012",
+      "id": "eb671fcd-b5f1-4bda-8962-9d37254182b7",
       "name": "Deepen?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
-      "position": [700, 96]
+      "position": [
+        4048,
+        464
+      ]
     },
     {
       "parameters": {
-        "batchSize": 1,
         "options": {}
       },
-      "id": "cccc2222-0000-4000-8000-000000000021",
+      "id": "6cbe432f-ef6d-417c-8571-88338f981261",
       "name": "Loop deals",
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 3,
-      "position": [920, 96]
+      "position": [
+        4256,
+        384
+      ]
     },
     {
       "parameters": {
@@ -633,11 +489,14 @@
         "responseBody": "={{ JSON.stringify({ phase_id: 'deepening', phase: 'Pogłębianie', message: 'Pogłębiam transakcję ' + $json.deepen_idx + ' z ' + $json.deepen_total + ': ' + $json.deal_asset + ' — planuję zapytania uzupełniające...', progress: ($json.deepen_idx - 1) / Math.max($json.deepen_total, 1), deal: $json.deal_asset, deal_index: $json.deepen_idx, deal_total: $json.deepen_total }) }}",
         "options": {}
       },
-      "id": "cccc2222-0000-4000-8000-000000000022",
+      "id": "1debeced-5ee0-4dec-bccb-2a7a97e45007",
       "name": "SSE · Deal progress",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
-      "position": [1140, -16]
+      "position": [
+        4480,
+        352
+      ]
     },
     {
       "parameters": {
@@ -651,22 +510,28 @@
           ]
         }
       },
-      "id": "cccc2222-0000-4000-8000-000000000013",
+      "id": "fc39b6a0-2636-44ec-98b5-7294122169a8",
       "name": "LLM · Plan follow-up queries",
       "type": "@n8n/n8n-nodes-langchain.chainLlm",
       "typeVersion": 1.5,
-      "position": [1360, -16],
+      "position": [
+        4704,
+        352
+      ],
       "onError": "continueRegularOutput"
     },
     {
       "parameters": {
         "jsCode": "// Turns the LLM query plan for the CURRENT deal (one loop iteration = one\n// deal) into search items. Law-firm-only queries get include_domains.\nconst cfg = $('⚙️ Config').first().json;\nconst maxQ = Number(cfg.max_queries_per_deal) || 3;\nconst LAW_DOMAINS = ['dentons.com','cms.law','gtlaw.com','wolftheiss.com','bakermckenzie.com',\n  'cliffordchance.com','rzmlaw.com','dzp.pl','whitecase.com','dlapiper.com','gide.com','pinsentmasons.com'];\n\nconst deal = $('SSE · Deal progress').first().json;\nconst plan = $input.first().json;\nconst rawText = [plan.text, plan.output, plan.response].find((v) => typeof v === 'string') || '';\nlet data = null;\ntry {\n  data = JSON.parse(rawText.replace(/^\\s*```(json)?/i, '').replace(/```\\s*$/, '').trim());\n} catch (e) { data = null; }\nlet queries = (data && Array.isArray(data.queries)) ? data.queries : [];\n// Fallback if the model returned garbage - deterministic queries, never zero.\nif (queries.length === 0) {\n  queries = [\n    { query: [deal.deal_asset, deal.buyer, 'transaction'].filter(Boolean).join(' '), law_firms_only: false },\n    { query: [deal.deal_asset, 'advised legal advisor'].filter(Boolean).join(' '), law_firms_only: true },\n  ];\n}\nconst out = [];\nfor (const q of queries.slice(0, maxQ)) {\n  const query = String(q.query || '').trim().slice(0, 390);\n  if (!query) continue;\n  out.push({ json: {\n    deal_id: deal.deal_id,\n    query,\n    include_domains: q.law_firms_only ? LAW_DOMAINS : [],\n    sources: deal.sources,\n  } });\n}\n// Never return zero items - the loop iteration must keep flowing.\nif (out.length === 0) {\n  out.push({ json: { deal_id: deal.deal_id, query: String(deal.deal_asset).slice(0, 390), include_domains: [], sources: deal.sources } });\n}\nreturn out;"
       },
-      "id": "cccc2222-0000-4000-8000-000000000014",
+      "id": "323198fc-01a1-48e4-ac48-57de79f77902",
       "name": "Parse query plan",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1580, -16]
+      "position": [
+        4928,
+        352
+      ]
     },
     {
       "parameters": {
@@ -679,11 +544,14 @@
           "country": "poland"
         }
       },
-      "id": "cccc2222-0000-4000-8000-000000000016",
+      "id": "47715bc7-42b5-4791-9163-6176aa2b2a63",
       "name": "Tavily · Deep search",
       "type": "@tavily/n8n-nodes-tavily.tavily",
       "typeVersion": 1,
-      "position": [1800, -16],
+      "position": [
+        5136,
+        352
+      ],
       "credentials": {
         "tavilyApi": {
           "id": "FMZKErZFUWBxVewS",
@@ -696,11 +564,14 @@
       "parameters": {
         "jsCode": "// From this deal's follow-up searches take up to max_links_per_query NEW\n// URLs each (skipping ones already in Sources), deduped. Always returns at\n// least one item (a _skip marker) so the loop iteration never stalls.\nconst cfg = $('⚙️ Config').first().json;\nconst maxLinks = Number(cfg.max_links_per_query) || 2;\n\nconst deal = $('SSE · Deal progress').first().json;\nconst responses = $input.all();\nconst existing = String(deal.sources || '').toLowerCase();\nconst seen = new Set();\nconst out = [];\n\nfor (let i = 0; i < responses.length; i++) {\n  let taken = 0;\n  for (const r of responses[i].json.results || []) {\n    if (taken >= maxLinks) break;\n    const url = r.url || '';\n    if (!url || /\\.pdf(\\?|$)/i.test(url)) continue;\n    const key = url.replace(/\\/+$/, '').toLowerCase();\n    if (existing.includes(key) || seen.has(key)) continue;\n    out.push({ json: { deal_id: deal.deal_id, url } });\n    seen.add(key);\n    taken++;\n  }\n}\nif (out.length === 0) return [{ json: { deal_id: deal.deal_id, _skip: true } }];\nreturn out.map((o) => ({ json: { ...o.json, fetch_total: out.length } }));"
       },
-      "id": "cccc2222-0000-4000-8000-000000000017",
+      "id": "eb165d96-0a64-43a8-92c3-0ada8c2eae05",
       "name": "Select new sources",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2020, -16]
+      "position": [
+        5360,
+        352
+      ]
     },
     {
       "parameters": {
@@ -727,11 +598,14 @@
         },
         "options": {}
       },
-      "id": "cccc2222-0000-4000-8000-000000000023",
+      "id": "15638947-cc9c-477b-9c1b-6e820607490b",
       "name": "Has new sources?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
-      "position": [2240, -16]
+      "position": [
+        5584,
+        352
+      ]
     },
     {
       "parameters": {
@@ -739,11 +613,14 @@
         "responseBody": "={{ JSON.stringify({ phase_id: 'deepening', phase: 'Pogłębianie', message: 'Pobieram treść ' + $json.fetch_total + ' nowych źródeł dla: ' + $('SSE · Deal progress').first().json.deal_asset + '...', progress: ($('SSE · Deal progress').first().json.deepen_idx - 0.66) / Math.max($('SSE · Deal progress').first().json.deepen_total, 1), deal: $('SSE · Deal progress').first().json.deal_asset, deal_index: $('SSE · Deal progress').first().json.deepen_idx, deal_total: $('SSE · Deal progress').first().json.deepen_total, sources: $json.fetch_total }) }}",
         "options": {}
       },
-      "id": "cccc2222-0000-4000-8000-000000000024",
+      "id": "d24016df-4f5a-4a0e-9199-5fe80ccabb69",
       "name": "SSE · Deal sources",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
-      "position": [2460, -96]
+      "position": [
+        5792,
+        112
+      ]
     },
     {
       "parameters": {
@@ -756,11 +633,14 @@
           "format": "markdown"
         }
       },
-      "id": "cccc2222-0000-4000-8000-000000000019",
+      "id": "b6486c4a-db3a-4b48-b4f1-3572a6d49302",
       "name": "Tavily · Extract sources",
       "type": "@tavily/n8n-nodes-tavily.tavily",
       "typeVersion": 1,
-      "position": [2680, -96],
+      "position": [
+        6000,
+        112
+      ],
       "credentials": {
         "tavilyApi": {
           "id": "FMZKErZFUWBxVewS",
@@ -775,21 +655,27 @@
         "responseBody": "={{ JSON.stringify({ phase_id: 'deepening', phase: 'Pogłębianie', message: 'Analizuję pobrane artykuły (LLM uzupełnia tylko brakujące pola): ' + $('SSE · Deal progress').first().json.deal_asset + '...', progress: ($('SSE · Deal progress').first().json.deepen_idx - 0.33) / Math.max($('SSE · Deal progress').first().json.deepen_total, 1), deal: $('SSE · Deal progress').first().json.deal_asset, deal_index: $('SSE · Deal progress').first().json.deepen_idx, deal_total: $('SSE · Deal progress').first().json.deepen_total }) }}",
         "options": {}
       },
-      "id": "cccc2222-0000-4000-8000-000000000025",
+      "id": "e7655a94-4b89-4533-aac7-efe0834ec8bd",
       "name": "SSE · Deal enrich",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
-      "position": [2900, -96]
+      "position": [
+        6224,
+        112
+      ]
     },
     {
       "parameters": {
         "jsCode": "// Builds the enrichment LLM input: deal context + one article's text each.\n// Always returns >=1 item so the loop iteration never stalls; the fallback\n// item makes the LLM answer same_transaction=false and contributes nothing.\nconst deal = $('SSE · Deal progress').first().json;\nconst links = $('Select new sources').all();\nconst extracts = $input.all();\n\nconst cleanText = (raw) => String(raw || '')\n  .split('\\n')\n  .filter((l) => { const t = l.trim(); return !t.startsWith('![') && !/^\\[[^\\]]*\\]\\([^)]*\\)$/.test(t); })\n  .join('\\n').replace(/\\s+/g, ' ').trim();\n\nconst out = [];\nfor (let i = 0; i < extracts.length; i++) {\n  const link = (links[i] || {}).json || {};\n  const results = extracts[i].json.results || [];\n  const body = cleanText(results[0] ? results[0].raw_content : '').slice(0, 8000);\n  if (!body) continue;\n  const ctx = {\n    deal_asset: deal.deal_asset, buyer: deal.buyer, seller: deal.seller,\n    deal_value: deal.deal_value, missing_fields: deal.gaps,\n  };\n  out.push({ json: {\n    deal_id: deal.deal_id, url: link.url,\n    llm_input: 'DEAL: ' + JSON.stringify(ctx) + '\\nARTICLE: ' + body,\n  } });\n}\nif (out.length === 0) {\n  out.push({ json: { deal_id: deal.deal_id, url: '', llm_input: 'DEAL: {}\\nARTICLE: (no article content available)' } });\n}\nreturn out;"
       },
-      "id": "cccc2222-0000-4000-8000-00000000001a",
+      "id": "ca644c42-352a-421a-8a5f-0ae1522cbf25",
       "name": "Prepare enrich input",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [3120, -96]
+      "position": [
+        6448,
+        112
+      ]
     },
     {
       "parameters": {
@@ -803,33 +689,42 @@
           ]
         }
       },
-      "id": "cccc2222-0000-4000-8000-00000000001b",
+      "id": "8e76173a-dda6-40f2-ab1e-4833ede6416f",
       "name": "LLM · Enrich deal",
       "type": "@n8n/n8n-nodes-langchain.chainLlm",
       "typeVersion": 1.5,
-      "position": [3340, -96],
+      "position": [
+        6672,
+        112
+      ],
       "onError": "continueRegularOutput"
     },
     {
       "parameters": {
         "jsCode": "// Aggregates this iteration's enrichment into ONE item and always returns\n// it, so the loop continues even when nothing was found for this deal.\n// Runs on both paths (with and without new sources).\nconst deal = $('SSE · Deal progress').first().json;\n\nconst FIELDS = ['announcement_date','transaction_type','description','buyer','seller','other_parties',\n  'deal_value','buyer_legal_advisor','seller_legal_advisor','other_legal_advisors','status','sector'];\n\nconst f = { urls: [] };\nlet inputs = [], outputs = [];\ntry { inputs = $('Prepare enrich input').all(); } catch (e) {}\ntry { outputs = $('LLM · Enrich deal').all(); } catch (e) {}\n\nfor (let i = 0; i < outputs.length; i++) {\n  const src = (inputs[i] || {}).json || {};\n  if (src.deal_id !== deal.deal_id) continue; // stale items from a previous iteration\n  const rawText = [outputs[i].json.text, outputs[i].json.output, outputs[i].json.response]\n    .find((v) => typeof v === 'string') || '';\n  let data = null;\n  try { data = JSON.parse(rawText.replace(/^\\s*```(json)?/i, '').replace(/```\\s*$/, '').trim()); } catch (e) { continue; }\n  if (!data || data.same_transaction !== true) continue; // article about another deal\n  let contributed = false;\n  for (const field of FIELDS) {\n    const v = data[field];\n    if (v && typeof v === 'string' && !f[field]) { f[field] = v.trim(); contributed = true; }\n  }\n  if (contributed && src.url && !f.urls.includes(src.url)) f.urls.push(src.url);\n}\n\nreturn [{ json: { deal_id: deal.deal_id, fill: f } }];"
       },
-      "id": "cccc2222-0000-4000-8000-000000000026",
+      "id": "a0cb6236-1b99-47a7-b065-8d9ffe4c654a",
       "name": "Collect deal enrichment",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [3560, 16]
+      "position": [
+        6848,
+        368
+      ]
     },
     {
       "parameters": {
         "model": "gpt-5.5",
         "options": {}
       },
-      "id": "cccc2222-0000-4000-8000-00000000001c",
+      "id": "cf254514-9ee7-445b-92e2-5b051d3e6689",
       "name": "Azure GPT",
       "type": "@n8n/n8n-nodes-langchain.lmChatAzureOpenAi",
       "typeVersion": 1,
-      "position": [2460, 160],
+      "position": [
+        5808,
+        528
+      ],
       "credentials": {
         "azureOpenAiApi": {
           "id": "tb23Di7B2PBJTEsz",
@@ -839,11 +734,14 @@
     },
     {
       "parameters": {},
-      "id": "cccc2222-0000-4000-8000-00000000001d",
+      "id": "2f699251-fefe-4ad7-b072-80c93bd6da5c",
       "name": "Gather branches",
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3,
-      "position": [1140, 320]
+      "position": [
+        4752,
+        928
+      ]
     },
     {
       "parameters": {
@@ -851,21 +749,27 @@
         "responseBody": "{\"phase_id\": \"compile\", \"phase\": \"Kompilacja\", \"message\": \"Kompiluję ostateczną tabelę transakcji i źródła informacji...\"}",
         "options": {}
       },
-      "id": "cccc2222-0000-4000-8000-00000000001e",
+      "id": "aa37c711-3050-4620-9a5e-e261a0f200ba",
       "name": "SSE · Finalizing",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
-      "position": [1360, 320]
+      "position": [
+        4976,
+        928
+      ]
     },
     {
       "parameters": {
         "jsCode": "// Final assembly: deals from discovery + per-deal enrichment fills from the\n// loop. Fill ONLY empty fields; append contributing URLs to Sources.\n// Column names exactly as the frontend table expects (COLUMNS[].apiKey).\nconst base = $('Mark for deepening').all().map((i) => i.json).filter((r) => !r._empty);\n\n// Fills arrive through Gather branches as items shaped { deal_id, fill }.\nconst fills = new Map();\nfor (const item of $input.all()) {\n  const j = item.json || {};\n  if (j.fill) fills.set(j.deal_id, j.fill);\n}\n\n// Frontend sorts 'Data ogłoszenia' as D.MM.YYYY (like the mock) - convert ISO dates.\nconst plDate = (iso) => {\n  const m = /^(\\d{4})-(\\d{2})-(\\d{2})$/.exec(String(iso || ''));\n  return m ? `${Number(m[3])}.${m[2]}.${m[1]}` : String(iso || '');\n};\n\nconst rows = base.map((r) => {\n  const f = fills.get(r.deal_id) || { urls: [] };\n  const val = (field) => r[field] || f[field] || '';\n  const sources = [r.sources, ...(f.urls || [])].filter(Boolean).join('; ');\n  return {\n    'Data ogłoszenia': plDate(val('announcement_date')),\n    'Deal/asset': r.deal_asset || '',\n    'Rodzaj transakcji': val('transaction_type'),\n    'Opis transakcji': val('description'),\n    'Buyer / inwestor': val('buyer'),\n    'Seller / vendor': val('seller'),\n    'Other parties involved': val('other_parties'),\n    'Deal value': val('deal_value'),\n    'Buyer legal advisor': val('buyer_legal_advisor'),\n    'Seller legal advisor': val('seller_legal_advisor'),\n    'Other legal advisors involved': val('other_legal_advisors'),\n    'Status transakcji': val('status'),\n    'Sektor': val('sector') || 'not identified',\n    'Źródła informacji': sources,\n  };\n});\n\n// Single item with the whole table -> the final Respond node streams it\n// as one plain JSON array chunk (exactly the framing the mock used).\nreturn [{ json: { transactions: rows } }];"
       },
-      "id": "cccc2222-0000-4000-8000-00000000001f",
+      "id": "dada02bb-7657-489b-a3c7-03f8609eb67e",
       "name": "Build client table",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1580, 320]
+      "position": [
+        5200,
+        928
+      ]
     },
     {
       "parameters": {
@@ -873,11 +777,14 @@
         "responseBody": "={{ JSON.stringify({ phase_id: 'done', phase: 'Zakończono', message: 'Gotowe — ' + $json.transactions.length + ' transakcji w finalnej tabeli. Przesyłam wyniki...' }) }}",
         "options": {}
       },
-      "id": "cccc2222-0000-4000-8000-000000000027",
+      "id": "098aa812-c90c-4d2c-b551-65288e250aa5",
       "name": "SSE · Done",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
-      "position": [1800, 320]
+      "position": [
+        5408,
+        928
+      ]
     },
     {
       "parameters": {
@@ -885,164 +792,434 @@
         "responseBody": "={{ JSON.stringify($json.transactions) }}",
         "options": {}
       },
-      "id": "cccc2222-0000-4000-8000-000000000020",
+      "id": "0bd1dd4b-9a27-403c-af12-21cdafb34f71",
       "name": "Final — Transactions Payload",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
-      "position": [2020, 320]
+      "position": [
+        5632,
+        928
+      ]
     }
   ],
+  "pinData": {},
   "connections": {
     "Research SSE Webhook": {
-      "main": [[{ "node": "SSE · Start Discovery", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "SSE · Start Discovery",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "SSE · Start Discovery": {
-      "main": [[{ "node": "⚙️ Config", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "⚙️ Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "⚙️ Config": {
-      "main": [[{ "node": "Prepare research tasks", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Prepare research tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Prepare research tasks": {
-      "main": [[{ "node": "SSE · Research tasks launched", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "SSE · Research tasks launched",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "SSE · Research tasks launched": {
-      "main": [[{ "node": "Tavily · Research create", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Tavily · Research create",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Tavily · Research create": {
-      "main": [[{ "node": "Wait 30s", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Wait 30s",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Wait 30s": {
-      "main": [[{ "node": "Tavily · Research status", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Tavily · Research status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Tavily · Research status": {
-      "main": [[{ "node": "Check research statuses", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Check research statuses",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Check research statuses": {
-      "main": [[{ "node": "Still running?", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Still running?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Still running?": {
       "main": [
-        [{ "node": "SSE · Research heartbeat", "type": "main", "index": 0 }],
-        [{ "node": "Research → deals", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "SSE · Research heartbeat",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Research → deals",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "SSE · Research heartbeat": {
-      "main": [[{ "node": "Stop flag? (research)", "type": "main", "index": 0 }]]
-    },
-    "Stop flag? (research)": {
-      "main": [[{ "node": "Przerwać? (research)", "type": "main", "index": 0 }]]
-    },
-    "Przerwać? (research)": {
       "main": [
-        [{ "node": "SSE · Aborted (research)", "type": "main", "index": 0 }],
-        [{ "node": "Restore poll items", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Wait 30s",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
-    "Restore poll items": {
-      "main": [[{ "node": "Wait 30s", "type": "main", "index": 0 }]]
-    },
     "Research → deals": {
-      "main": [[{ "node": "SSE · Deals merged", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "SSE · Deals merged",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "SSE · Deals merged": {
-      "main": [[{ "node": "Mark for deepening", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Mark for deepening",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Mark for deepening": {
-      "main": [[{ "node": "SSE · Deepening start", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "SSE · Deepening start",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "SSE · Deepening start": {
-      "main": [[{ "node": "Deepen?", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Deepen?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Deepen?": {
       "main": [
-        [{ "node": "Loop deals", "type": "main", "index": 0 }],
-        [{ "node": "Gather branches", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Loop deals",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Gather branches",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Loop deals": {
       "main": [
-        [{ "node": "Gather branches", "type": "main", "index": 1 }],
-        [{ "node": "SSE · Deal progress", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Gather branches",
+            "type": "main",
+            "index": 1
+          }
+        ],
+        [
+          {
+            "node": "SSE · Deal progress",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "SSE · Deal progress": {
-      "main": [[{ "node": "Stop flag? (deal)", "type": "main", "index": 0 }]]
-    },
-    "Stop flag? (deal)": {
-      "main": [[{ "node": "Przerwać? (deal)", "type": "main", "index": 0 }]]
-    },
-    "Przerwać? (deal)": {
       "main": [
-        [{ "node": "SSE · Aborted (deal)", "type": "main", "index": 0 }],
-        [{ "node": "Restore deal item", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "LLM · Plan follow-up queries",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
-    "Restore deal item": {
-      "main": [[{ "node": "LLM · Plan follow-up queries", "type": "main", "index": 0 }]]
-    },
-    "Stop Webhook": {
-      "main": [[{ "node": "Zapisz flagę stopu", "type": "main", "index": 0 }]]
-    },
     "LLM · Plan follow-up queries": {
-      "main": [[{ "node": "Parse query plan", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Parse query plan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Parse query plan": {
-      "main": [[{ "node": "Tavily · Deep search", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Tavily · Deep search",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Tavily · Deep search": {
-      "main": [[{ "node": "Select new sources", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Select new sources",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Select new sources": {
-      "main": [[{ "node": "Has new sources?", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Has new sources?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Has new sources?": {
       "main": [
-        [{ "node": "SSE · Deal sources", "type": "main", "index": 0 }],
-        [{ "node": "Collect deal enrichment", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "SSE · Deal sources",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Collect deal enrichment",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "SSE · Deal sources": {
-      "main": [[{ "node": "Tavily · Extract sources", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Tavily · Extract sources",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Tavily · Extract sources": {
-      "main": [[{ "node": "SSE · Deal enrich", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "SSE · Deal enrich",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "SSE · Deal enrich": {
-      "main": [[{ "node": "Prepare enrich input", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Prepare enrich input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Prepare enrich input": {
-      "main": [[{ "node": "LLM · Enrich deal", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "LLM · Enrich deal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "LLM · Enrich deal": {
-      "main": [[{ "node": "Collect deal enrichment", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Collect deal enrichment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Collect deal enrichment": {
-      "main": [[{ "node": "Loop deals", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Loop deals",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Gather branches": {
-      "main": [[{ "node": "SSE · Finalizing", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "SSE · Finalizing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "SSE · Finalizing": {
-      "main": [[{ "node": "Build client table", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Build client table",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Build client table": {
-      "main": [[{ "node": "SSE · Done", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "SSE · Done",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "SSE · Done": {
-      "main": [[{ "node": "Final — Transactions Payload", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Final — Transactions Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Azure GPT": {
       "ai_languageModel": [
         [
-          { "node": "LLM · Plan follow-up queries", "type": "ai_languageModel", "index": 0 },
-          { "node": "LLM · Enrich deal", "type": "ai_languageModel", "index": 0 }
+          {
+            "node": "LLM · Plan follow-up queries",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "LLM · Enrich deal",
+            "type": "ai_languageModel",
+            "index": 0
+          }
         ]
       ]
     }
   },
+  "active": false,
   "settings": {
     "executionOrder": "v1"
   },
-  "pinData": {},
-  "active": false
+  "versionId": "220401ef-df90-4221-b4d1-ecb73598276e",
+  "meta": {
+    "instanceId": "082b449529c5f7bb8d91521da45a04212b109ce5280f108291b0ee5f8d55011e"
+  },
+  "id": "HiPNMAhqWIHIZrsP",
+  "tags": []
 }

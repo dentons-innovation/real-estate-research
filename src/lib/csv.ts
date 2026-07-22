@@ -1,4 +1,5 @@
 import type { ColumnDef, Transaction } from '../data/transactions'
+import type { Lang } from './i18n'
 
 const UTF8_BOM = '﻿'
 
@@ -9,9 +10,9 @@ function escapeCsvField(value: string): string {
   return value
 }
 
-/** Serializes rows to RFC 4180 CSV using the column labels as the header row. */
-export function toCsv(rows: Transaction[], columns: ColumnDef[]): string {
-  const header = columns.map((c) => escapeCsvField(c.label)).join(',')
+/** Serializes rows to RFC 4180 CSV using the column labels (in the given language) as the header row. */
+export function toCsv(rows: Transaction[], columns: ColumnDef[], lang: Lang): string {
+  const header = columns.map((c) => escapeCsvField(c.label[lang])).join(',')
   const lines = rows.map((row) => columns.map((c) => escapeCsvField(row[c.key])).join(','))
   return [header, ...lines].join('\r\n')
 }

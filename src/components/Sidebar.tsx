@@ -1,12 +1,13 @@
 import type { Phase } from '../App'
 import logo from '../dentons_logo.png'
+import { useI18n, type Localized } from '../lib/i18n'
 
-export const TIME_RANGES = [
-  { value: '7d', label: 'Ostatnie 7 dni' },
-  { value: '30d', label: 'Ostatnie 30 dni' },
-  { value: '1m', label: 'Ostatni miesiąc' },
-  { value: '1q', label: 'Ostatni kwartał' },
-  { value: '1y', label: 'Ostatni rok' },
+export const TIME_RANGES: Array<{ value: string; label: Localized }> = [
+  { value: '7d', label: { pl: 'Ostatnie 7 dni', en: 'Last 7 days' } },
+  { value: '30d', label: { pl: 'Ostatnie 30 dni', en: 'Last 30 days' } },
+  { value: '1m', label: { pl: 'Ostatni miesiąc', en: 'Last month' } },
+  { value: '1q', label: { pl: 'Ostatni kwartał', en: 'Last quarter' } },
+  { value: '1y', label: { pl: 'Ostatni rok', en: 'Last year' } },
 ]
 
 interface SidebarProps {
@@ -49,6 +50,7 @@ export default function Sidebar({
   showAvatar,
   onToggleAvatar,
 }: SidebarProps) {
+  const { lang, setLang, t } = useI18n()
   const searching = phase === 'searching'
   const cancelled = phase === 'cancelled'
   const failed = phase === 'failed'
@@ -59,17 +61,17 @@ export default function Sidebar({
       <div>
         <img src={logo} alt="Dentons" className="h-9 w-auto select-none" draggable={false} />
         <p className="mt-2 font-mono text-[10px] tracking-[0.32em] text-den-grey/70 uppercase">
-          Real Estate · Polska
+          {t.brandTagline}
         </p>
         <div className="mt-5 h-px w-full bg-gradient-to-r from-den-light/50 via-white/10 to-transparent" />
       </div>
 
       {/* Parameters */}
       <div className="flex flex-col gap-5">
-        <p className="font-mono text-[10px] tracking-[0.28em] text-white/40 uppercase">Parametry wyszukiwania</p>
+        <p className="font-mono text-[10px] tracking-[0.28em] text-white/40 uppercase">{t.searchParams}</p>
 
         <div>
-          <FieldLabel>Zakres czasu</FieldLabel>
+          <FieldLabel>{t.timeRange}</FieldLabel>
           <div className="relative">
             <select
               value={timeRange}
@@ -79,7 +81,7 @@ export default function Sidebar({
             >
               {TIME_RANGES.map((r) => (
                 <option key={r.value} value={r.value}>
-                  {r.label}
+                  {r.label[lang]}
                 </option>
               ))}
             </select>
@@ -90,7 +92,7 @@ export default function Sidebar({
 
       {/* Interface */}
       <div>
-        <p className="font-mono text-[10px] tracking-[0.28em] text-white/40 uppercase">Interfejs</p>
+        <p className="font-mono text-[10px] tracking-[0.28em] text-white/40 uppercase">{t.interfaceSection}</p>
         <button
           type="button"
           role="switch"
@@ -111,7 +113,7 @@ export default function Sidebar({
               <circle cx="6" cy="9" r="0.9" fill="currentColor" />
               <circle cx="10" cy="9" r="0.9" fill="currentColor" />
             </svg>
-            Awatar asystenta
+            {t.avatarToggle}
           </span>
           <span
             className={`relative h-5 w-9 shrink-0 rounded-full transition-colors duration-300 ${
@@ -126,8 +128,40 @@ export default function Sidebar({
           </span>
         </button>
         <p className="mt-1.5 text-[11px] leading-snug text-white/35">
-          Robot i jego komentarze podczas researchu.
+          {t.avatarHint}
         </p>
+
+        {/* language switcher — PL / EN */}
+        <div className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-white/15 bg-white/5 px-3.5 py-2.5">
+          <span className="flex items-center gap-2.5 text-[13px] font-medium text-white/75">
+            <svg className="h-4 w-4 text-white/30" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.3" />
+              <path d="M2 8h12M8 2c1.8 1.7 2.7 3.8 2.7 6S9.8 12.3 8 14M8 2C6.2 3.7 5.3 5.8 5.3 8S6.2 12.3 8 14" stroke="currentColor" strokeWidth="1.1" />
+            </svg>
+            {t.langLabel}
+          </span>
+          <div
+            role="group"
+            aria-label={t.langLabel}
+            className="flex shrink-0 overflow-hidden rounded-md border border-white/15"
+          >
+            {(['pl', 'en'] as const).map((code) => (
+              <button
+                key={code}
+                type="button"
+                aria-pressed={lang === code}
+                onClick={() => setLang(code)}
+                className={`cursor-pointer px-2.5 py-1 font-mono text-[10px] tracking-[0.1em] uppercase transition-colors ${
+                  lang === code
+                    ? 'bg-den-light text-white'
+                    : 'bg-transparent text-white/40 hover:bg-white/10 hover:text-white/70'
+                }`}
+              >
+                {code}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* Action */}
@@ -142,7 +176,7 @@ export default function Sidebar({
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
                 <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-400" />
               </span>
-              Zatrzymaj research
+              {t.stopResearch}
             </button>
             <button
               onClick={onMockError}
@@ -151,7 +185,7 @@ export default function Sidebar({
               <svg className="h-3.5 w-3.5" viewBox="0 0 14 14" fill="none" aria-hidden="true">
                 <path d="M8.5 1 3 8h3l-.5 5L11 6H8l.5-5Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" />
               </svg>
-              Symuluj błąd (Mock Error)
+              {t.mockError}
             </button>
           </>
         ) : (
@@ -166,7 +200,7 @@ export default function Sidebar({
                 <path d="M13.2 13.2 L17 17" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
                 <path d="M9 6.5 A2.5 2.5 0 0 0 6.5 9" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" opacity="0.7" />
               </svg>
-              {cancelled ? 'Przerywanie…' : failed ? 'Spróbuj ponownie' : 'Rozpocznij research'}
+              {cancelled ? t.stopping : failed ? t.tryAgain : t.startResearch}
             </span>
           </button>
         )}

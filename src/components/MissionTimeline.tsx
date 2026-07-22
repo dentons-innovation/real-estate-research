@@ -2,6 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import gsap from 'gsap'
 import AgentAvatar from './AgentAvatar'
 import { PHASES, LAST_PHASE, type MissionState } from '../lib/phases'
+import { useI18n } from '../lib/i18n'
 
 const clamp = (v: number, min: number, max: number) => Math.min(max, Math.max(min, v))
 const clamp01 = (v: number) => clamp(v, 0, 1)
@@ -26,6 +27,7 @@ interface MissionTimelineProps {
  * z viewBoxem w realnych pikselach.
  */
 export default function MissionTimeline({ mission, cancelled, failed, showAvatar, bubbleText }: MissionTimelineProps) {
+  const { lang, t } = useI18n()
   const rootRef = useRef<HTMLDivElement>(null)
   const svgRef = useRef<SVGSVGElement>(null)
   const litRef = useRef<SVGPathElement>(null)
@@ -186,7 +188,7 @@ export default function MissionTimeline({ mission, cancelled, failed, showAvatar
     <div
       ref={rootRef}
       className={`relative w-full ${showAvatar ? 'h-[240px] sm:h-[290px]' : 'h-[96px] sm:h-[110px]'}`}
-      aria-label="Mapa misji researchu"
+      aria-label={t.missionMapAria}
     >
       {w > 0 && h > 0 && (
         <>
@@ -270,7 +272,7 @@ export default function MissionTimeline({ mission, cancelled, failed, showAvatar
                       active ? 'fill-den-gold' : done ? 'fill-den-teal/80' : 'fill-white/35'
                     }`}
                   >
-                    {p.label}
+                    {p.label[lang]}
                   </text>
                 </g>
               )

@@ -9,6 +9,7 @@ import {
   type Transaction,
 } from '../data/transactions'
 import { downloadCsv, toCsv } from '../lib/csv'
+import { useI18n } from '../lib/i18n'
 
 interface SortState {
   key: keyof Transaction
@@ -21,14 +22,14 @@ const STATUS_STYLES: Record<string, string> = {
   secured: 'border-den-purple/40 bg-den-purple/10 text-den-purple',
 }
 
-/** The n8n backend sends these fields in English; translate for display only. */
-const STATUS_LABELS: Record<string, string> = {
+/** The n8n backend sends these fields in English; the PL view translates them for display only. */
+const STATUS_LABELS_PL: Record<string, string> = {
   signed: 'podpisana',
   completed: 'zamknięta',
   secured: 'zabezpieczona',
 }
 
-const SECTOR_LABELS: Record<string, string> = {
+const SECTOR_LABELS_PL: Record<string, string> = {
   office: 'biurowy',
   'mixed-use': 'wielofunkcyjny',
   retail: 'handlowy',
@@ -39,14 +40,6 @@ const SECTOR_LABELS: Record<string, string> = {
   warehouse: 'magazynowy',
 }
 
-function transactionCount(n: number): string {
-  if (n === 1) return '1 transakcja'
-  const lastTwo = n % 100
-  const last = n % 10
-  if (last >= 2 && last <= 4 && (lastTwo < 12 || lastTwo > 14)) return `${n} transakcje`
-  return `${n} transakcji`
-}
-
 function hostLabel(url: string): string {
   try {
     return new URL(url).hostname.replace(/^www\./, '')
@@ -55,18 +48,19 @@ function hostLabel(url: string): string {
   }
 }
 
-function sortKeyFor(column: ColumnDef, row: Transaction): string | number {
+function sortKeyFor(column: ColumnDef, row: Transaction, lang: string): string | number {
   const raw = row[column.key]
   if (column.kind === 'date') return dateSortKey(raw)
   if (column.kind === 'value') return valueSortKey(raw)
-  return raw.toLocaleLowerCase('pl')
+  return raw.toLocaleLowerCase(lang)
 }
 
 function CellContent({ column, row }: { column: ColumnDef; row: Transaction }) {
+  const { lang, t } = useI18n()
   const value = row[column.key]
 
   if (value === 'not disclosed' && column.kind !== 'links') {
-    return <span className="text-[13px] text-den-ink/35 italic">nie ujawniono</span>
+    return <span className="text-[13px] text-den-ink/35 italic">{t.notDisclosed}</span>
   }
 
   switch (column.kind) {
@@ -81,13 +75,13 @@ function CellContent({ column, row }: { column: ColumnDef; row: Transaction }) {
             STATUS_STYLES[value] ?? 'border-den-grey bg-den-grey/20 text-den-ink/60'
           }`}
         >
-          {STATUS_LABELS[value] ?? value}
+          {lang === 'pl' ? (STATUS_LABELS_PL[value] ?? value) : value}
         </span>
       )
     case 'sector':
       return (
         <span className="inline-block max-w-full rounded-full border border-den-light/40 bg-den-light/10 px-2.5 py-1 text-[11px] leading-snug font-medium break-words whitespace-normal text-den-dark capitalize">
-          {SECTOR_LABELS[value] ?? value}
+          {lang === 'pl' ? (SECTOR_LABELS_PL[value] ?? value) : value}
         </span>
       )
     case 'links':
@@ -117,6 +111,7 @@ function CellContent({ column, row }: { column: ColumnDef; row: Transaction }) {
 }
 
 export default function ResultsTable({ rows, timeRangeLabel }: { rows: Transaction[]; timeRangeLabel: string }) {
+  const { lang, t } = useI18n()
   const [sort, setSort] = useState<SortState>({ key: 'dataOgloszenia', dir: 'desc' })
   const rootRef = useRef<HTMLDivElement>(null)
 
@@ -125,12 +120,12 @@ export default function ResultsTable({ rows, timeRangeLabel }: { rows: Transacti
     if (!column) return rows
     const factor = sort.dir === 'asc' ? 1 : -1
     return [...rows].sort((a, b) => {
-      const ka = sortKeyFor(column, a)
-      const kb = sortKeyFor(column, b)
+      const ka = sortKeyFor(column, a, lang)
+      const kb = sortKeyFor(column, b, lang)
       if (typeof ka === 'number' && typeof kb === 'number') return (ka - kb) * factor
-      return String(ka).localeCompare(String(kb), 'pl') * factor
+      return String(ka).localeCompare(String(kb), lang) * factor
     })
-  }, [rows, sort])
+  }, [rows, sort, lang])
 
   const handleSort = (key: keyof Transaction) => {
     setSort((prev) => (prev.key === key ? { key, dir: prev.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'asc' }))
@@ -138,7 +133,7 @@ export default function ResultsTable({ rows, timeRangeLabel }: { rows: Transacti
 
   const handleExport = () => {
     const stamp = new Date().toISOString().slice(0, 10)
-    downloadCsv(`dentons-research-${stamp}.csv`, toCsv(sortedRows, COLUMNS))
+    downloadCsv(`dentons-research-${stamp}.csv`, toCsv(sortedRows, COLUMNS, lang))
   }
 
   useEffect(() => {
@@ -155,13 +150,13 @@ export default function ResultsTable({ rows, timeRangeLabel }: { rows: Transacti
       {/* toolbar */}
       <div data-results-toolbar className="mb-4 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="font-mono text-[10px] tracking-[0.3em] text-den-gold/85 uppercase">Wyniki researchu</p>
+          <p className="font-mono text-[10px] tracking-[0.3em] text-den-gold/85 uppercase">{t.resultsEyebrow}</p>
           <h2 className="mt-1.5 text-2xl font-light tracking-tight text-white">
-            Transakcje <span className="text-white/45">·</span>{' '}
-            <span className="font-normal text-den-light">{transactionCount(rows.length)}</span>
+            {t.resultsTitle} <span className="text-white/45">·</span>{' '}
+            <span className="font-normal text-den-light">{t.transactionCount(rows.length)}</span>
           </h2>
           <p className="mt-1 text-[13px] text-white/45">
-            {timeRangeLabel} · rynek nieruchomości, Polska
+            {timeRangeLabel} · {t.resultsMarket}
           </p>
         </div>
 
@@ -173,7 +168,7 @@ export default function ResultsTable({ rows, timeRangeLabel }: { rows: Transacti
             <path d="M9 2v9m0 0 3.5-3.5M9 11 5.5 7.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
             <path d="M2.5 12.5v1.75A1.75 1.75 0 0 0 4.25 16h9.5a1.75 1.75 0 0 0 1.75-1.75V12.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
           </svg>
-          Eksportuj do CSV
+          {t.exportCsv}
         </button>
       </div>
 
@@ -200,7 +195,7 @@ export default function ResultsTable({ rows, timeRangeLabel }: { rows: Transacti
                       onClick={() => handleSort(column.key)}
                       className="flex w-full items-center gap-1.5 px-4 py-3.5 text-[11.5px] font-bold tracking-wide text-den-xdark uppercase transition-colors hover:bg-den-purple/10 hover:text-den-purple"
                     >
-                      <span className="whitespace-nowrap">{column.label}</span>
+                      <span className="whitespace-nowrap">{column.label[lang]}</span>
                       <svg
                         className={`h-3 w-3 shrink-0 transition-all ${
                           active ? `text-den-purple ${sort.dir === 'desc' ? 'rotate-180' : ''}` : 'text-den-xdark/25'
@@ -240,7 +235,7 @@ export default function ResultsTable({ rows, timeRangeLabel }: { rows: Transacti
       </div>
 
       <p className="mt-3 shrink-0 text-right font-mono text-[10px] tracking-[0.14em] text-white/30">
-        Kliknij nagłówek kolumny, aby sortować · przewiń tabelę w poziomie, aby zobaczyć wszystkie kolumny
+        {t.tableHint}
       </p>
     </div>
   )

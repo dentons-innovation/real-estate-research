@@ -8,7 +8,8 @@ import ResultsTable from './components/ResultsTable'
 import { mapApiTransactions, type Transaction } from './data/transactions'
 import { startResearchStream, type ResearchStreamHandle, type ResearchEventMeta } from './lib/researchStream'
 import { PHASES, LAST_PHASE, resolvePhase, type MissionState } from './lib/phases'
-import { N8N_SSE_WEBHOOK_URL, N8N_SSE_STOP_WEBHOOK_URL } from './config'
+import { N8N_SSE_WEBHOOK_URL } from './config'
+import { useI18n } from './lib/i18n'
 import type { LogEntry } from './components/BackendLog'
 
 /** 'failed' zostaje na ekranie misji: błąd ląduje w konsoli, robot panikuje. */
@@ -17,6 +18,7 @@ export type Phase = 'idle' | 'searching' | 'cancelled' | 'failed' | 'results'
 const SHOW_AVATAR_KEY = 'dentons-re-show-avatar'
 
 export default function App() {
+  const { lang, toggle, t } = useI18n()
   const [phase, setPhase] = useState<Phase>('idle')
   const [timeRange, setTimeRange] = useState('30d')
   const [showAvatar, setShowAvatar] = useState(() => localStorage.getItem(SHOW_AVATAR_KEY) !== '0')
@@ -33,8 +35,6 @@ export default function App() {
   /** True from "Rozpocznij research" until completion/cancel/error — independent of the
    *  React phase, which lags ~220 ms behind during the GSAP stage fade. */
   const runActiveRef = useRef(false)
-  /** Unikalny identyfikator bieżącego przebiegu — wysyłany do n8n przy starcie i przy stopie. */
-  const researchRunIdRef = useRef('')
 
   phaseRef.current = phase
 
@@ -52,20 +52,6 @@ export default function App() {
     },
     [],
   )
-
-  /** Fire-and-forget: każe backendowi n8n przerwać bieżącą egzekucję researchu. */
-  const notifyBackendStop = useCallback(() => {
-    const runId = researchRunIdRef.current
-    if (!runId) return
-    fetch(N8N_SSE_STOP_WEBHOOK_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ run_id: runId }),
-      keepalive: true,
-    }).catch(() => {
-      /* backend może już nie żyć — stop jest best-effort */
-    })
-  }, [])
 
   /** Fades the stage out, swaps the phase, fades back in. */
   const transitionTo = useCallback((next: Phase) => {
@@ -113,7 +99,6 @@ export default function App() {
     setLogEntries([])
     setMission({ idx: 0, progress: 0 })
     setRunId((r) => r + 1)
-    researchRunIdRef.current = crypto.randomUUID()
     runActiveRef.current = true
     transitionTo('searching')
 
@@ -123,7 +108,6 @@ export default function App() {
     streamRef.current = startResearchStream({
       url: N8N_SSE_WEBHOOK_URL,
       range: timeRange,
-      runId: researchRunIdRef.current,
       onEvent: (event) => {
         if (!runActiveRef.current) return
         // mapowanie backendowego phase_id na checkpoint frontendu (merge dedup+gaps, split deepening)
@@ -169,18 +153,16 @@ export default function App() {
     runActiveRef.current = false
     streamRef.current?.abort()
     streamRef.current = null
-    notifyBackendStop()
-    appendLog('', 'Połączenie przerwane przez użytkownika — wysłano do n8n żądanie zatrzymania researchu.')
+    appendLog('', 'Połączenie przerwane przez użytkownika.')
     setPhase('cancelled')
     resetTimerRef.current = window.setTimeout(() => transitionTo('idle'), 3000)
-  }, [transitionTo, appendLog, notifyBackendStop])
+  }, [transitionTo, appendLog])
 
   const handleMockError = useCallback(() => {
     if (phaseRef.current !== 'searching' || transitionPendingRef.current) return
     runActiveRef.current = false
     streamRef.current?.abort()
     streamRef.current = null
-    notifyBackendStop()
     appendLog(
       'BŁĄD',
       [
@@ -194,7 +176,7 @@ export default function App() {
       'error',
     )
     setPhase('failed')
-  }, [appendLog, notifyBackendStop])
+  }, [appendLog])
 
   const handleToggleAvatar = useCallback(() => {
     setShowAvatar((prev) => {
@@ -204,7 +186,7 @@ export default function App() {
     })
   }, [])
 
-  const timeRangeLabel = TIME_RANGES.find((r) => r.value === timeRange)?.label ?? ''
+  const timeRangeLabel = TIME_RANGES.find((r) => r.value === timeRange)?.label[lang] ?? ''
 
   return (
     <div className="relative flex min-h-screen flex-col lg:h-screen lg:flex-row lg:overflow-hidden">
@@ -225,11 +207,18 @@ export default function App() {
         {/* slim product header */}
         <header className="flex items-center justify-between px-6 pt-5 pb-1 lg:px-10">
           <p className="font-mono text-[11px] tracking-[0.18em] text-white/35 uppercase">
-            Narzędzia <span className="mx-1 text-white/20">/</span> Research transakcji
+            {t.headerTools} <span className="mx-1 text-white/20">/</span> {t.headerResearch}
           </p>
-          <p className="hidden font-mono text-[11px] tracking-[0.18em] text-white/35 sm:block">
-            {new Date().toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' })}
-            <span className="ml-3 rounded border border-white/15 px-1.5 py-0.5 text-[10px] text-den-gold/80">PL</span>
+          <p className="hidden items-center font-mono text-[11px] tracking-[0.18em] text-white/35 sm:flex">
+            {new Date().toLocaleDateString(t.dateLocale, { day: 'numeric', month: 'long', year: 'numeric' })}
+            <button
+              type="button"
+              onClick={toggle}
+              title={lang === 'pl' ? 'Switch to English' : 'Przełącz na polski'}
+              className="ml-3 cursor-pointer rounded border border-white/15 px-1.5 py-0.5 text-[10px] text-den-gold/80 transition-colors hover:border-den-gold/60 hover:text-den-gold"
+            >
+              {lang.toUpperCase()}
+            </button>
           </p>
         </header>
 

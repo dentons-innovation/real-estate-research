@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import gsap from 'gsap'
 import { PHASES, PHASE_INDEX, phaseGroupColor, type PhaseId } from '../lib/phases'
+import { translateBackendText, translatePhaseTag, useI18n, type Lang } from '../lib/i18n'
 import type { ResearchEventMeta } from '../lib/researchStream'
 
 export interface LogEntry {
@@ -28,21 +29,22 @@ function tagColor(entry: LogEntry): string {
   return 'text-white/40'
 }
 
-/** Treść wpisu z podświetloną nazwą deala (gdy backend ją przysłał). */
-function MessageText({ entry }: { entry: LogEntry }) {
-  if (entry.kind === 'error') return <span className="text-red-300/90">{entry.message}</span>
+/** Treść wpisu (tłumaczona przy renderowaniu) z podświetloną nazwą deala. */
+function MessageText({ entry, lang }: { entry: LogEntry; lang: Lang }) {
+  const text = translateBackendText(entry.message, lang)
+  if (entry.kind === 'error') return <span className="text-red-300/90">{text}</span>
   const deal = entry.meta?.deal
-  if (deal && entry.message.includes(deal)) {
-    const at = entry.message.indexOf(deal)
+  if (deal && text.includes(deal)) {
+    const at = text.indexOf(deal)
     return (
       <span className="text-white/70">
-        {entry.message.slice(0, at)}
+        {text.slice(0, at)}
         <span className="text-den-gold">{deal}</span>
-        {entry.message.slice(at + deal.length)}
+        {text.slice(at + deal.length)}
       </span>
     )
   }
-  return <span className="text-white/70">{entry.message}</span>
+  return <span className="text-white/70">{text}</span>
 }
 
 interface BackendLogProps {
@@ -55,6 +57,7 @@ interface BackendLogProps {
 }
 
 export default function BackendLog({ entries, running, cancelled, failed }: BackendLogProps) {
+  const { lang, t } = useI18n()
   const scrollRef = useRef<HTMLDivElement>(null)
   /** Auto-scroll tylko, gdy user jest przy dole — czytanie scrollbacku nie jest wyrywane. */
   const nearBottomRef = useRef(true)
@@ -83,7 +86,7 @@ export default function BackendLog({ entries, running, cancelled, failed }: Back
               failed || cancelled ? 'bg-den-red' : running ? 'animate-pulse bg-den-teal' : 'bg-den-teal'
             }`}
           />
-          {failed ? 'Błąd backendu' : cancelled ? 'Rozłączono' : 'Live status · backend'}
+          {failed ? t.logStatusError : cancelled ? t.logStatusDisconnected : t.logStatusLive}
         </span>
       </div>
 
@@ -92,7 +95,7 @@ export default function BackendLog({ entries, running, cancelled, failed }: Back
         ref={scrollRef}
         onScroll={handleScroll}
         role="log"
-        aria-label="Log backendu"
+        aria-label={t.logAria}
         className="data-scroll min-h-0 flex-1 overflow-y-auto rounded-lg border border-white/10 bg-black/45 px-3.5 py-2.5 font-mono text-[11px] leading-[1.7]"
       >
         {entries.map((entry, i) => {
@@ -108,7 +111,7 @@ export default function BackendLog({ entries, running, cancelled, failed }: Back
                 <div data-log-line className="my-1.5 flex items-center gap-2" aria-hidden="true">
                   <span className="h-px flex-1 bg-gradient-to-r from-transparent to-den-gold/40" />
                   <span className="shrink-0 font-mono text-[10px] tracking-[0.22em] text-den-gold/80 uppercase">
-                    {def.num} · {def.listLabel}
+                    {def.num} · {def.listLabel[lang]}
                   </span>
                   <span className="h-px flex-1 bg-gradient-to-l from-transparent to-den-gold/40" />
                 </div>
@@ -117,10 +120,10 @@ export default function BackendLog({ entries, running, cancelled, failed }: Back
                 <span className="shrink-0 text-white/30">[{entry.time}]</span>
                 {entry.phase && (
                   <span className={`shrink-0 ${entry.kind === 'error' ? 'font-semibold text-den-red' : tagColor(entry)}`}>
-                    {entry.phase}
+                    {translatePhaseTag(entry.phase, lang)}
                   </span>
                 )}
-                <MessageText entry={entry} />
+                <MessageText entry={entry} lang={lang} />
               </div>
             </div>
           )

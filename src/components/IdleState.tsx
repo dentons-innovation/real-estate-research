@@ -1,9 +1,9 @@
 import { useEffect, useRef } from 'react'
 import gsap from 'gsap'
-
-const CAPABILITIES = ['14 kolumn danych', 'źródła z linkami', 'eksport do CSV']
+import { useI18n } from '../lib/i18n'
 
 export default function IdleState() {
+  const { t } = useI18n()
   const rootRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -39,23 +39,22 @@ export default function IdleState() {
         <span data-corner className="absolute -right-8 -bottom-8 hidden h-5 w-5 border-b border-r border-den-gold/50 sm:block" />
 
         <p data-hero-item className="font-mono text-[11px] tracking-[0.34em] text-den-gold/85 uppercase">
-          Dentons · Analizy rynku nieruchomości
+          {t.idleEyebrow}
         </p>
 
         <h1 data-hero-item className="mt-5 text-4xl leading-[1.08] font-light tracking-tight text-white sm:text-5xl lg:text-[3.4rem]">
-          Transakcje na polskim rynku{' '}
+          {t.idleTitlePre}{' '}
           <span className="bg-gradient-to-r from-den-light to-den-gold bg-clip-text font-normal text-transparent">
-            nieruchomości
+            {t.idleTitleAccent}
           </span>
         </h1>
 
         <p data-hero-item className="mx-auto mt-6 max-w-xl text-[15px] leading-relaxed text-white/60">
-          Agent AI przeszukuje komunikaty prasowe, serwisy branżowe i rejestry, a znalezione transakcje zestawia
-          w tabelę gotową do analizy i eksportu.
+          {t.idleDescription}
         </p>
 
         <div data-hero-item className="mt-8 flex flex-wrap items-center justify-center gap-2">
-          {CAPABILITIES.map((c) => (
+          {t.idleCapabilities.map((c) => (
             <span
               key={c}
               className="glass rounded-full px-3.5 py-1.5 font-mono text-[11px] tracking-[0.12em] text-white/55"
@@ -69,8 +68,8 @@ export default function IdleState() {
           <svg className="h-4 w-4 text-den-gold/70 max-lg:-rotate-90" viewBox="0 0 16 16" fill="none" aria-hidden="true">
             <path d="M10 3 L4 8 L10 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-          Ustaw zakres czasu i kliknij{' '}
-          <span className="font-medium text-white/75">„Rozpocznij research”</span>
+          {t.idleHintPre}{' '}
+          <span className="font-medium text-white/75">{t.idleHintButton}</span>
         </div>
       </div>
     </div>

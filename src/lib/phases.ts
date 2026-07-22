@@ -1,4 +1,5 @@
 import type { ResearchEventMeta } from './researchStream'
+import type { Localized } from './i18n'
 
 /**
  * Definicje 11 faz Mapy Misji (strona frontendu).
@@ -31,25 +32,91 @@ export interface PhaseDef {
   id: PhaseId
   /** Numer 1..11 pokazywany przy checkpoincie. */
   num: number
-  /** Krótka etykieta pod checkpointem na timeline. */
-  label: string
-  /** Pełna etykieta — lista faz i nagłówki sekcji w konsoli logów. */
-  listLabel: string
+  /** Krótka etykieta pod checkpointem na timeline (PL/EN). */
+  label: Localized
+  /** Pełna etykieta — lista faz i nagłówki sekcji w konsoli logów (PL/EN). */
+  listLabel: Localized
   icon: PhaseIcon
 }
 
 export const PHASES: PhaseDef[] = [
-  { id: 'init', num: 1, label: 'Start', listLabel: 'Połączenie z backendem', icon: 'plug' },
-  { id: 'research_launch', num: 2, label: 'Zadania', listLabel: 'Uruchomienie 3 zadań deep research', icon: 'launch' },
-  { id: 'research_1', num: 3, label: 'Research 1/3', listLabel: 'Research: sprzedaże i przejęcia', icon: 'radar' },
-  { id: 'research_2', num: 4, label: 'Research 2/3', listLabel: 'Research: finansowania i JV', icon: 'radar' },
-  { id: 'research_3', num: 5, label: 'Research 3/3', listLabel: 'Research: kancelarie prawne', icon: 'radar' },
-  { id: 'dedup_gaps', num: 6, label: 'Scalanie i braki', listLabel: 'Scalanie wyników i analiza braków', icon: 'merge' },
-  { id: 'deepening_1', num: 7, label: 'Pogłębianie 1/3', listLabel: 'Pogłębianie transakcji — etap 1/3', icon: 'drill' },
-  { id: 'deepening_2', num: 8, label: 'Pogłębianie 2/3', listLabel: 'Pogłębianie transakcji — etap 2/3', icon: 'drill' },
-  { id: 'deepening_3', num: 9, label: 'Pogłębianie 3/3', listLabel: 'Pogłębianie transakcji — etap 3/3', icon: 'drill' },
-  { id: 'compile', num: 10, label: 'Kompilacja', listLabel: 'Budowa tabeli wynikowej', icon: 'table' },
-  { id: 'done', num: 11, label: 'Gotowe', listLabel: 'Wyniki gotowe', icon: 'check' },
+  {
+    id: 'init',
+    num: 1,
+    label: { pl: 'Start', en: 'Start' },
+    listLabel: { pl: 'Połączenie z backendem', en: 'Backend connection' },
+    icon: 'plug',
+  },
+  {
+    id: 'research_launch',
+    num: 2,
+    label: { pl: 'Zadania', en: 'Tasks' },
+    listLabel: { pl: 'Uruchomienie 3 zadań deep research', en: 'Launching 3 deep research tasks' },
+    icon: 'launch',
+  },
+  {
+    id: 'research_1',
+    num: 3,
+    label: { pl: 'Research 1/3', en: 'Research 1/3' },
+    listLabel: { pl: 'Research: sprzedaże i przejęcia', en: 'Research: sales & acquisitions' },
+    icon: 'radar',
+  },
+  {
+    id: 'research_2',
+    num: 4,
+    label: { pl: 'Research 2/3', en: 'Research 2/3' },
+    listLabel: { pl: 'Research: finansowania i JV', en: 'Research: financings & JVs' },
+    icon: 'radar',
+  },
+  {
+    id: 'research_3',
+    num: 5,
+    label: { pl: 'Research 3/3', en: 'Research 3/3' },
+    listLabel: { pl: 'Research: kancelarie prawne', en: 'Research: law firms' },
+    icon: 'radar',
+  },
+  {
+    id: 'dedup_gaps',
+    num: 6,
+    label: { pl: 'Scalanie i braki', en: 'Merge & gaps' },
+    listLabel: { pl: 'Scalanie wyników i analiza braków', en: 'Merging results & gap analysis' },
+    icon: 'merge',
+  },
+  {
+    id: 'deepening_1',
+    num: 7,
+    label: { pl: 'Pogłębianie 1/3', en: 'Deepening 1/3' },
+    listLabel: { pl: 'Pogłębianie transakcji — etap 1/3', en: 'Deal deepening — stage 1/3' },
+    icon: 'drill',
+  },
+  {
+    id: 'deepening_2',
+    num: 8,
+    label: { pl: 'Pogłębianie 2/3', en: 'Deepening 2/3' },
+    listLabel: { pl: 'Pogłębianie transakcji — etap 2/3', en: 'Deal deepening — stage 2/3' },
+    icon: 'drill',
+  },
+  {
+    id: 'deepening_3',
+    num: 9,
+    label: { pl: 'Pogłębianie 3/3', en: 'Deepening 3/3' },
+    listLabel: { pl: 'Pogłębianie transakcji — etap 3/3', en: 'Deal deepening — stage 3/3' },
+    icon: 'drill',
+  },
+  {
+    id: 'compile',
+    num: 10,
+    label: { pl: 'Kompilacja', en: 'Compile' },
+    listLabel: { pl: 'Budowa tabeli wynikowej', en: 'Building the results table' },
+    icon: 'table',
+  },
+  {
+    id: 'done',
+    num: 11,
+    label: { pl: 'Gotowe', en: 'Done' },
+    listLabel: { pl: 'Wyniki gotowe', en: 'Results ready' },
+    icon: 'check',
+  },
 ]
 
 const BASE_INDEX = Object.fromEntries(PHASES.map((p, i) => [p.id, i]))
