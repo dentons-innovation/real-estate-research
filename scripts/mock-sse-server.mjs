@@ -113,6 +113,11 @@ const server = http.createServer((req, res) => {
   // Drain the request body — leaving it unconsumed can make Node reset the
   // socket mid-stream (flaky "network error" in the browser on Windows).
   req.resume()
+  // Long-lived idle gaps between events: keep the TCP socket alive and flush
+  // every chunk immediately (Windows loopback is prone to RST otherwise).
+  req.socket.setKeepAlive(true, 1000)
+  req.socket.setNoDelay(true)
+  req.socket.setTimeout(0)
 
   console.log(`[${new Date().toLocaleTimeString()}] research start`)
   res.writeHead(200, {
@@ -142,6 +147,17 @@ const server = http.createServer((req, res) => {
     if (timer) clearTimeout(timer)
   })
   tick()
+})
+
+// The stream idles for seconds between events — disable every server-side
+// inactivity timeout so Node never tears the connection down mid-run.
+server.keepAliveTimeout = 0
+server.headersTimeout = 0
+server.requestTimeout = 0
+server.timeout = 0
+server.on('clientError', (err, socket) => {
+  console.log(`clientError: ${err.code ?? err.message}`)
+  socket.destroy()
 })
 
 server.listen(PORT, () => {
