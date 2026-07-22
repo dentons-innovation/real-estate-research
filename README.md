@@ -25,6 +25,19 @@ npm run build    # production build in dist/
 
 Vite · React 19 · TypeScript · Tailwind CSS 4 · GSAP · n8n (SSE backend)
 
+## Deployment (Railway)
+
+The app is a static Vite build served with `vite preview`:
+
+- **Build command:** `npm run build` (Railway detects it automatically)
+- **Start command:** `npm start` (binds to `0.0.0.0` on Railway's `$PORT`)
+- No environment variables are required — the n8n cloud webhook URL is the
+  built-in default. To override it, set `VITE_N8N_SSE_WEBHOOK_URL` in the
+  Railway service variables and **redeploy** (the value is baked in at build
+  time).
+- The n8n webhook allows all origins (`allowedOrigins: "*"`), so the Railway
+  domain needs no CORS changes.
+
 ## Backend (n8n + SSE)
 
 1. Import **`Poland RE Deals - Live Research SSE.json`** into n8n
@@ -32,13 +45,18 @@ Vite · React 19 · TypeScript · Tailwind CSS 4 · GSAP · n8n (SSE backend)
    n8n ≥ 1.94 (streaming Respond to Webhook). This is the project's only
    workflow — it performs the real research (Tavily Research + Azure GPT)
    and streams progress to the frontend.
-2. By default the frontend connects to `http://localhost:5678/webhook/research-sse`
-   (POST with body `{"range":"30d"}`). Set a different address in `.env.local`
+2. The production n8n cloud webhook URL is the built-in default
+   (`src/config.ts`), so a fresh build works with no env configuration —
+   the frontend POSTs `{"range":"30d"}` to it. To point at a different
+   instance (or the local mock), set the override in `.env.local`
    (copy `.env.example` as a template):
 
    ```
    VITE_N8N_SSE_WEBHOOK_URL=https://your-n8n.example.com/webhook/research-sse
    ```
+
+   Vite bakes `VITE_*` variables in at **build time** — changing them
+   requires a rebuild, not just a restart.
 
    > n8n gotcha: the `/webhook-test/...` path only works while the editor is
    > listening ("Listen for test event"). For normal operation activate the
