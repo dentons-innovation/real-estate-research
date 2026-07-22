@@ -8,10 +8,10 @@ export interface LogEntry {
   time: string
   phase: string
   message: string
-  /** Kanoniczne phase_id (już zmapowane na fazę frontendu) — steruje nagłówkami sekcji i kolorem tagu. */
+  /** Canonical phase_id (already mapped to a frontend phase) — drives section headers and tag colour. */
   phaseId?: string
   meta?: ResearchEventMeta
-  /** 'error' → wpis renderowany na czerwono (pełny komunikat błędu backendu). */
+  /** 'error' → entry rendered in red (full backend error message). */
   kind?: 'error'
 }
 
@@ -29,7 +29,7 @@ function tagColor(entry: LogEntry): string {
   return 'text-white/40'
 }
 
-/** Treść wpisu (tłumaczona przy renderowaniu) z podświetloną nazwą deala. */
+/** Entry text (translated at render time) with the deal name highlighted. */
 function MessageText({ entry, lang }: { entry: LogEntry; lang: Lang }) {
   const text = translateBackendText(entry.message, lang)
   if (entry.kind === 'error') return <span className="text-red-300/90">{text}</span>
@@ -49,17 +49,17 @@ function MessageText({ entry, lang }: { entry: LogEntry; lang: Lang }) {
 
 interface BackendLogProps {
   entries: LogEntry[]
-  /** true dopóki research trwa — pulsująca kropka statusu + kursor. */
+  /** true while the research is running — pulsing status dot + cursor. */
   running: boolean
   cancelled: boolean
-  /** Research zakończony błędem — czerwony status, szczegóły w czerwonych wpisach. */
+  /** Research ended with an error — red status, details in red entries. */
   failed: boolean
 }
 
 export default function BackendLog({ entries, running, cancelled, failed }: BackendLogProps) {
   const { lang, t } = useI18n()
   const scrollRef = useRef<HTMLDivElement>(null)
-  /** Auto-scroll tylko, gdy user jest przy dole — czytanie scrollbacku nie jest wyrywane. */
+  /** Auto-scroll only when the user is near the bottom — reading scrollback is never yanked away. */
   const nearBottomRef = useRef(true)
 
   useEffect(() => {

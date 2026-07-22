@@ -11,20 +11,20 @@ const reduceMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)')
 interface MissionTimelineProps {
   mission: MissionState
   cancelled: boolean
-  /** Błąd backendu: robot staje w miejscu i łapie się za głowę (mood panic). */
+  /** Backend error: the robot stops in place and grabs its head (panic mood). */
   failed: boolean
-  /** false → zamiast robota po ścieżce jedzie świecąca kropka. */
+  /** false → a glowing dot rides the path instead of the robot. */
   showAvatar: boolean
-  /** Tekst dymka (rotację zabawnych wiadomości prowadzi SearchingState). */
+  /** Bubble text (the witty message rotation is driven by SearchingState). */
   bubbleText: string
 }
 
 /**
- * Mapa Misji: neonowa ścieżka danych z 10 checkpointami i robotem, który
- * płynnie dojeżdża do pozycji overallT = (idx + progress) / LAST_PHASE.
- * Jedna parametryczna krzywa curve(t) jest źródłem prawdy dla geometrii
- * ścieżki SVG, checkpointów, robota i dymka — overlay DOM pokrywa się 1:1
- * z viewBoxem w realnych pikselach.
+ * Mission Map: a neon data path with checkpoints and a robot that smoothly
+ * travels to overallT = (idx + progress) / LAST_PHASE.
+ * A single parametric curve curve(t) is the source of truth for the geometry
+ * of the SVG path, the checkpoints, the robot and the bubble — the DOM overlay
+ * matches the viewBox 1:1 in real pixels.
  */
 export default function MissionTimeline({ mission, cancelled, failed, showAvatar, bubbleText }: MissionTimelineProps) {
   const { lang, t } = useI18n()
@@ -38,7 +38,7 @@ export default function MissionTimeline({ mission, cancelled, failed, showAvatar
   const bubbleRef = useRef<HTMLDivElement>(null)
   const tailRef = useRef<HTMLDivElement>(null)
   const msgRef = useRef<HTMLParagraphElement>(null)
-  /** Pozycja robota na ścieżce (0..1) — cel tweenów, przeżywa re-rendery. */
+  /** Robot position on the path (0..1) — tween target, survives re-renders. */
   const proxyRef = useRef({ t: 0 })
   const lengthRef = useRef(0)
   const [size, setSize] = useState({ w: 0, h: 0 })
@@ -59,9 +59,9 @@ export default function MissionTimeline({ mission, cancelled, failed, showAvatar
   const halted = cancelled || failed
   const robotW = w < 640 ? 112 : 144
   const robotH = Math.round(robotW * 1.1)
-  // ścieżka zaczyna się tak, by duży robot nie wystawał poza pasmo na skrajach
+  // the path starts so that the large robot never sticks out of the band at the edges
   const pad = clamp(Math.max(w * 0.05, showAvatar ? robotW / 2 + 4 : 0), 24, 96)
-  const base = h - 46 // linia bazowa ścieżki; pod nią strefa numerów/etykiet
+  const base = h - 46 // path baseline; the numbers/labels zone sits below it
 
   const curve = useCallback(
     (t: number) => ({
@@ -71,7 +71,7 @@ export default function MissionTimeline({ mission, cancelled, failed, showAvatar
     [pad, w, base],
   )
 
-  /** Sadza robota/kropkę, dymek z ogonkiem i zapaloną część ścieżki w punkcie t. */
+  /** Seats the robot/dot, the bubble with its tail and the lit path portion at point t. */
   const positionAt = useCallback(
     (t: number) => {
       const { x, y } = curve(t)
@@ -94,14 +94,14 @@ export default function MissionTimeline({ mission, cancelled, failed, showAvatar
     [curve, robotW, robotH, w],
   )
 
-  // geometria ścieżki — 48 sampli wspólnej krzywej
+  // path geometry — 48 samples of the shared curve
   let d = ''
   if (w > 0 && h > 0) {
     const pts = Array.from({ length: 49 }, (_, i) => curve(i / 48))
     d = 'M' + pts.map((p) => `${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' L ')
   }
 
-  // po każdej zmianie geometrii: zmierz długość, ustaw dasharray, przesadź wszystko od razu
+  // after every geometry change: measure the length, set the dasharray, reseat everything at once
   useLayoutEffect(() => {
     const lit = litRef.current
     if (!lit || !d) return
@@ -111,7 +111,7 @@ export default function MissionTimeline({ mission, cancelled, failed, showAvatar
     positionAt(proxyRef.current.t)
   }, [d, positionAt, showAvatar])
 
-  // podróż robota do bieżącego celu misji
+  // robot travel to the current mission target
   useEffect(() => {
     if (!d || halted) return
     const target = clamp01((mission.idx + clamp01(mission.progress)) / LAST_PHASE)
@@ -132,7 +132,7 @@ export default function MissionTimeline({ mission, cancelled, failed, showAvatar
     })
   }, [mission.idx, mission.progress, halted, d, positionAt])
 
-  // ambient: shimmer przepływu danych + pulsujące halo aktywnego checkpointu
+  // ambient: data-flow shimmer + pulsing halo of the active checkpoint
   useEffect(() => {
     if (!d || halted || doneAll || reduceMotion()) return
     const ctx = gsap.context(() => {
@@ -148,14 +148,14 @@ export default function MissionTimeline({ mission, cancelled, failed, showAvatar
     return () => ctx.revert()
   }, [d, halted, doneAll, mission.idx])
 
-  // przerwanie lub błąd: robot staje w miejscu, ścieżka przygasa
+  // cancel or error: the robot stops in place, the path dims
   useEffect(() => {
     if (!halted) return
     gsap.killTweensOf(proxyRef.current)
     if (svgRef.current) gsap.to(svgRef.current, { opacity: 0.35, duration: 0.6, ease: 'power2.out' })
   }, [halted])
 
-  // podmiana tekstu dymka — fade-out → tekst → fade-in + pop bąbelka
+  // bubble text swap — fade-out → text → fade-in + bubble pop
   useEffect(() => {
     const el = msgRef.current
     if (!el || !showAvatar) return
@@ -177,7 +177,7 @@ export default function MissionTimeline({ mission, cancelled, failed, showAvatar
       })
       .fromTo(el, { opacity: 0, y: 7 }, { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out' })
       .fromTo(bubbleRef.current, { scale: 0.97 }, { scale: 1, duration: 0.28, ease: 'back.out(3)' }, '<')
-      // szerokość dymka mogła się zmienić — doklamruj pozycję do robota
+      // the bubble width may have changed — re-clamp its position to the robot
       .call(() => positionAt(proxyRef.current.t))
     return () => {
       tl.kill()
@@ -203,7 +203,7 @@ export default function MissionTimeline({ mission, cancelled, failed, showAvatar
               </filter>
             </defs>
 
-            {/* ścieżka bazowa → poświata → część zapalona → shimmer przepływu */}
+            {/* base path → glow → lit portion → data-flow shimmer */}
             <path d={d} fill="none" stroke="rgba(160,94,181,0.25)" strokeWidth="3" strokeLinecap="round" />
             <path
               ref={glowRef}
@@ -228,7 +228,7 @@ export default function MissionTimeline({ mission, cancelled, failed, showAvatar
               />
             )}
 
-            {/* checkpointy */}
+            {/* checkpoints */}
             {PHASES.map((p, i) => {
               const { x, y } = curve(i / LAST_PHASE)
               const done = i < mission.idx || (i === LAST_PHASE && doneAll)
@@ -279,7 +279,7 @@ export default function MissionTimeline({ mission, cancelled, failed, showAvatar
             })}
           </svg>
 
-          {/* robot (lub świecąca kropka) jadący po ścieżce */}
+          {/* the robot (or a glowing dot) riding the path */}
           {showAvatar ? (
             <div ref={robotRef} className="absolute top-0 left-0 will-change-transform" style={{ width: robotW }}>
               <AgentAvatar mood={failed ? 'panic' : cancelled ? 'cancel' : 'work'} className="h-auto w-full" />
@@ -291,7 +291,7 @@ export default function MissionTimeline({ mission, cancelled, failed, showAvatar
             />
           )}
 
-          {/* dymek nad robotem — clampowany do krawędzi, ogonek śledzi robota */}
+          {/* bubble above the robot — clamped to the edges, the tail tracks the robot */}
           {showAvatar && (
             <div ref={bubbleRef} className="absolute top-0 left-0 w-max max-w-[270px] will-change-transform sm:max-w-[320px]">
               <div

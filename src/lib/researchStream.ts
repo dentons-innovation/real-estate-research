@@ -8,7 +8,7 @@
  *  - n8n streaming envelopes ({"type":"item","content":{...}}).
  */
 
-/** Płaskie meta dołączane przez backend do eventów postępu (snake_case → camelCase). */
+/** Flat meta the backend attaches to progress events (snake_case → camelCase). */
 export interface ResearchEventMeta {
   completed?: number
   total?: number
@@ -24,9 +24,9 @@ export interface ResearchEventMeta {
 export interface ResearchEvent {
   phase: string
   message: string
-  /** Surowe phase_id z backendu (bez walidacji — mapowanie robi App przez PHASE_INDEX). */
+  /** Raw backend phase_id (unvalidated — App maps it via PHASE_INDEX). */
   phaseId?: string
-  /** Postęp 0..1 wewnątrz fazy (obecnie tylko deepening). */
+  /** Progress 0..1 inside the phase (currently deepening only). */
   progress?: number
   meta?: ResearchEventMeta
 }

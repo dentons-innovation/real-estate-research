@@ -2,14 +2,14 @@ import type { ResearchEventMeta } from './researchStream'
 import type { Localized } from './i18n'
 
 /**
- * Definicje 11 faz Mapy Misji (strona frontendu).
+ * Definitions of the 11 Mission Map phases (frontend side).
  *
- * Backend (workflow "Poland RE Deals - Live Research SSE") emituje 10 phase_id;
- * frontend mapuje je na własne checkpointy:
- *  - `dedup` + `gap_analysis` → jeden checkpoint `dedup_gaps` (obie fazy są krótkie),
- *  - `deepening` (z progress 0..1) → trzy checkpointy `deepening_1..3`
- *    (faza jest długa — dzielimy ją wizualnie na etapy po 1/3 postępu).
- * Mapowanie robi resolvePhase() — jedyne miejsce tej logiki.
+ * The backend (the "Poland RE Deals - Live Research SSE" workflow) emits 10
+ * phase_ids; the frontend maps them onto its own checkpoints:
+ *  - `dedup` + `gap_analysis` → a single `dedup_gaps` checkpoint (both are short),
+ *  - `deepening` (with progress 0..1) → three checkpoints `deepening_1..3`
+ *    (the phase is long — split visually into 1/3-progress stages).
+ * resolvePhase() does the mapping — the only place with this logic.
  */
 
 export type PhaseId =
@@ -25,16 +25,16 @@ export type PhaseId =
   | 'compile'
   | 'done'
 
-/** Nazwa glifu — JSX ikon mieszka w PhaseList.tsx (PHASE_ICONS). */
+/** Glyph name — the icon JSX lives in PhaseList.tsx (PHASE_ICONS). */
 export type PhaseIcon = 'plug' | 'launch' | 'radar' | 'merge' | 'drill' | 'table' | 'check'
 
 export interface PhaseDef {
   id: PhaseId
-  /** Numer 1..11 pokazywany przy checkpoincie. */
+  /** Number 1..11 shown next to the checkpoint. */
   num: number
-  /** Krótka etykieta pod checkpointem na timeline (PL/EN). */
+  /** Short label under the timeline checkpoint (PL/EN). */
   label: Localized
-  /** Pełna etykieta — lista faz i nagłówki sekcji w konsoli logów (PL/EN). */
+  /** Full label — phase list and console section headers (PL/EN). */
   listLabel: Localized
   icon: PhaseIcon
 }
@@ -122,8 +122,8 @@ export const PHASES: PhaseDef[] = [
 const BASE_INDEX = Object.fromEntries(PHASES.map((p, i) => [p.id, i]))
 
 /**
- * phase_id → indeks w PHASES; zawiera też aliasy backendowych id
- * (dedup / gap_analysis → wspólny checkpoint). Nieznane id → undefined.
+ * phase_id → index in PHASES; also contains aliases for backend ids
+ * (dedup / gap_analysis → shared checkpoint). Unknown id → undefined.
  */
 export const PHASE_INDEX: Record<string, number> = {
   ...BASE_INDEX,
@@ -134,9 +134,9 @@ export const PHASE_INDEX: Record<string, number> = {
 export const LAST_PHASE = PHASES.length - 1
 
 /**
- * Mapuje surowe phase_id + progress z backendu na checkpoint frontendu
- * i lokalny postęp 0..1 wewnątrz niego. Backendowe `deepening` dzielimy
- * na trzy wizualne etapy po 1/3 łącznego postępu pętli per-deal.
+ * Maps a raw backend phase_id + progress onto a frontend checkpoint and the
+ * local 0..1 progress inside it. The backend `deepening` phase is split into
+ * three visual stages of 1/3 of the per-deal loop's total progress each.
  */
 export function resolvePhase(phaseId: string, progress: number): { idx: number; progress: number } | null {
   const p = Math.min(1, Math.max(0, progress))
@@ -149,17 +149,17 @@ export function resolvePhase(phaseId: string, progress: number): { idx: number; 
   return idx === undefined ? null : { idx, progress: p }
 }
 
-/** Stan misji trzymany w App i sterujący timeline'em + listą faz. */
+/** Mission state held in App, driving the timeline + phase list. */
 export interface MissionState {
-  /** Indeks aktywnej fazy w PHASES (0..LAST_PHASE). */
+  /** Index of the active phase in PHASES (0..LAST_PHASE). */
   idx: number
-  /** Postęp 0..1 wewnątrz aktywnej fazy. */
+  /** Progress 0..1 inside the active phase. */
   progress: number
-  /** Scalone meta z ostatnich eventów (liczniki, nazwa deala itd.). */
+  /** Merged meta from recent events (counters, deal name etc.). */
   meta?: ResearchEventMeta
 }
 
-/** Grupa kolorystyczna fazy — tagi w logu i akcenty listy. */
+/** Colour group of a phase — log tags and list accents. */
 export function phaseGroupColor(id: PhaseId): 'gold' | 'teal' | 'light' {
   if (id === 'dedup_gaps' || id.startsWith('deepening')) return 'teal'
   if (id === 'compile' || id === 'done') return 'light'

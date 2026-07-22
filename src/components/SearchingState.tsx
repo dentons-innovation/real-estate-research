@@ -465,29 +465,8 @@ export default function SearchingState({ cancelled, failed, mission, entries, sh
         <PhaseList mission={mission} cancelled={cancelled} failed={failed} />
       </div>
 
-      {/* console visibility toggle — some viewers just want the map */}
-      <div data-search-item className="flex w-full max-w-5xl items-center justify-end">
-        <button
-          type="button"
-          onClick={() => setShowLog((prev) => !prev)}
-          aria-expanded={showLog}
-          aria-controls="mission-console"
-          className="flex cursor-pointer items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-1.5 font-mono text-[10px] tracking-[0.14em] text-white/45 uppercase transition-colors hover:border-den-light/40 hover:text-white/70"
-        >
-          {showLog ? t.hideDetails : t.showDetails}
-          <svg
-            className={`h-3 w-3 shrink-0 transition-transform duration-300 ${showLog ? 'rotate-180' : ''}`}
-            viewBox="0 0 12 12"
-            fill="none"
-            aria-hidden="true"
-          >
-            <path d="M2.5 4.5 6 8l3.5-3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </button>
-      </div>
-
       {/* the REAL backend log — soaks up all remaining vertical space; kept
-          mounted when hidden so entries and scroll position survive the toggle */}
+          mounted when hidden so entries and scroll position survive the sidebar toggle */}
       <div
         id="mission-console"
         data-search-item

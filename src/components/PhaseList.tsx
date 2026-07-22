@@ -2,7 +2,7 @@ import type { ReactElement } from 'react'
 import { PHASES, type MissionState, type PhaseIcon } from '../lib/phases'
 import { translateResearchLabels, useI18n, type Lang, type UIStrings } from '../lib/i18n'
 
-/* małe glify 16×16, stroke = currentColor — spójne z mono-industrialnym stylem UI */
+/* small 16×16 glyphs, stroke = currentColor — consistent with the mono-industrial UI style */
 const ICON_PATHS: Record<PhaseIcon, ReactElement> = {
   plug: (
     <>
@@ -66,7 +66,7 @@ function PhaseGlyph({ icon }: { icon: PhaseIcon }) {
   )
 }
 
-/** Podpis aktywnej fazy z realnych danych backendu. */
+/** Caption of the active phase built from real backend data. */
 function activeCaption(mission: MissionState, lang: Lang, t: UIStrings): string {
   const { meta } = mission
   const id = PHASES[mission.idx].id
