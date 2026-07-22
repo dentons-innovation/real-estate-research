@@ -8,9 +8,6 @@
     "url": "https://github.com/michaldabrowski-dentons/real-estate-research.git"
   },
   "type": "module",
-  "engines": {
-    "node": ">=18"
-  },
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
