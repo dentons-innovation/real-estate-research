@@ -26,6 +26,9 @@ export default function App() {
   const [results, setResults] = useState<Transaction[]>([])
   const [logEntries, setLogEntries] = useState<LogEntry[]>([])
   const [mission, setMission] = useState<MissionState>({ idx: 0, progress: 0 })
+  /** True when the live stream stays silent past the watchdog window — a proxy/VPN
+   *  is buffering the response. Shows a warning banner without failing the run. */
+  const [networkStalled, setNetworkStalled] = useState(false)
   /** Run key — remounts SearchingState on every start (fresh bubble/log state). */
   const [runId, setRunId] = useState(0)
   const phaseRef = useRef<Phase>(phase)
@@ -99,6 +102,7 @@ export default function App() {
     if (phaseRef.current === 'searching' || phaseRef.current === 'cancelled' || transitionPendingRef.current) return
     setLogEntries([])
     setMission({ idx: 0, progress: 0 })
+    setNetworkStalled(false)
     setRunId((r) => r + 1)
     runActiveRef.current = true
     transitionTo('searching')
@@ -131,6 +135,7 @@ export default function App() {
       onComplete: (rawRows) => {
         if (!runActiveRef.current) return
         runActiveRef.current = false
+        setNetworkStalled(false)
         const mapped = mapApiTransactions(rawRows)
         setResults(mapped)
         setMission((prev) => ({ idx: LAST_PHASE, progress: 1, meta: prev.meta }))
@@ -143,9 +148,14 @@ export default function App() {
         if (!runActiveRef.current) return
         runActiveRef.current = false
         streamRef.current = null
+        setNetworkStalled(false)
         // the error stays on the mission screen: full message in the console, the robot panics
         appendLog('BŁĄD', detail, undefined, undefined, 'error')
         setPhase('failed')
+      },
+      // stream open but silent past the watchdog window (or data finally flowing again)
+      onStall: (stalled) => {
+        if (runActiveRef.current) setNetworkStalled(stalled)
       },
     })
   }, [transitionTo, settleTo, appendLog])
@@ -155,6 +165,7 @@ export default function App() {
     runActiveRef.current = false
     streamRef.current?.abort()
     streamRef.current = null
+    setNetworkStalled(false)
     appendLog('', 'Połączenie przerwane przez użytkownika.')
     setPhase('cancelled')
     resetTimerRef.current = window.setTimeout(() => transitionTo('idle'), 3000)
@@ -165,6 +176,7 @@ export default function App() {
     runActiveRef.current = false
     streamRef.current?.abort()
     streamRef.current = null
+    setNetworkStalled(false)
     appendLog(
       'BŁĄD',
       [
@@ -241,6 +253,7 @@ export default function App() {
               entries={logEntries}
               showAvatar={showAvatar}
               showLog={showLog}
+              networkStalled={networkStalled && phase === 'searching'}
             />
           )}
           {phase === 'results' && <ResultsTable rows={results} />}

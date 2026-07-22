@@ -82,6 +82,9 @@ export interface UIStrings {
   captionCompleted: string
   captionGaps: (deepen: number, total: number) => string
   captionUnique: (n: number) => string
+  // Network-stall warning (corporate proxy buffering the live stream)
+  stallTitle: string
+  stallBody: string
   // Backend log
   logAria: string
   logStatusLive: string
@@ -133,6 +136,9 @@ export const UI: Record<Lang, UIStrings> = {
     captionCompleted: 'ukończone',
     captionGaps: (deepen, total) => `${deepen} z ${total} z brakami`,
     captionUnique: (n) => `${n} unikalnych transakcji`,
+    stallTitle: 'Twoja sieć blokuje połączenie na żywo',
+    stallBody:
+      'Research wystartował, ale odpowiedź na żywo nie dociera — najczęściej blokuje ją firmowe proxy lub VPN, które buforuje długie połączenia. Spróbuj z innej sieci (np. hotspot z telefonu) albo z wyłączonym VPN.',
     logAria: 'Log backendu',
     logStatusLive: 'Live status · backend',
     logStatusDisconnected: 'Rozłączono',
@@ -185,6 +191,9 @@ export const UI: Record<Lang, UIStrings> = {
     captionCompleted: 'completed',
     captionGaps: (deepen, total) => `${deepen} of ${total} with gaps`,
     captionUnique: (n) => `${n} unique transactions`,
+    stallTitle: 'Your network is blocking the live connection',
+    stallBody:
+      'The research has started, but the live response is not coming through — this is usually a corporate proxy or VPN buffering long-lived connections. Try a different network (e.g. a phone hotspot) or with the VPN turned off.',
     logAria: 'Backend log',
     logStatusLive: 'Live status · backend',
     logStatusDisconnected: 'Disconnected',
@@ -296,10 +305,6 @@ const LINE_RULES: Array<[RegExp, string]> = [
   [
     /^Strumień otwarty \(HTTP (\d+), (.+)\) — czekam na dane z workflow\.\.\.$/,
     'Stream opened (HTTP $1, $2) — waiting for workflow data...',
-  ],
-  [
-    /^Wciąż brak danych z backendu \((\d+) s od otwarcia strumienia\) — jeśli to się utrzymuje, odpowiedź jest prawdopodobnie buforowana po drodze \(proxy\/VPN\)\.$/,
-    'Still no data from the backend ($1 s since the stream opened) — if this persists, the response is likely being buffered along the way (proxy/VPN).',
   ],
   [/^Otrzymano (\d+) rekordów — zamykam połączenie\.$/, 'Received $1 records — closing the connection.'],
   [/^Połączenie przerwane przez użytkownika\.$/, 'Connection interrupted by the user.'],

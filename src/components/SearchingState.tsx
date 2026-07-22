@@ -279,9 +279,11 @@ interface SearchingStateProps {
   showAvatar: boolean
   /** Sidebar toggle: shows/hides the mission console (kept mounted so entries survive). */
   showLog: boolean
+  /** Live stream is silent past the watchdog window — a proxy/VPN is buffering it. */
+  networkStalled: boolean
 }
 
-export default function SearchingState({ cancelled, failed, mission, entries, showAvatar, showLog }: SearchingStateProps) {
+export default function SearchingState({ cancelled, failed, mission, entries, showAvatar, showLog, networkStalled }: SearchingStateProps) {
   const { lang, t } = useI18n()
   const rootRef = useRef<HTMLDivElement>(null)
   const [bubbleText, setBubbleText] = useState('')
@@ -362,6 +364,25 @@ export default function SearchingState({ cancelled, failed, mission, entries, sh
         />
         {failed ? t.missionFailed : cancelled ? t.missionCancelled : t.missionRunning}
       </p>
+
+      {/* proxy/VPN buffering warning — the run keeps going in case the stream recovers */}
+      {networkStalled && !cancelled && !failed && (
+        <div
+          data-search-item
+          role="alert"
+          className="flex w-full max-w-5xl items-start gap-3 rounded-xl border border-amber-400/40 bg-amber-500/10 px-4 py-3"
+        >
+          <svg className="mt-0.5 h-5 w-5 shrink-0 text-amber-400" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+            <path d="M10 2 1.5 17h17L10 2Z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
+            <path d="M10 8v4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+            <circle cx="10" cy="14.6" r="0.4" fill="currentColor" stroke="currentColor" strokeWidth="0.8" />
+          </svg>
+          <div className="min-w-0">
+            <p className="text-[13px] font-semibold text-amber-200">{t.stallTitle}</p>
+            <p className="mt-0.5 text-[12px] leading-snug text-amber-100/70">{t.stallBody}</p>
+          </div>
+        </div>
+      )}
 
       {/* progress timeline: neon path + travelling robot with its bubble */}
       <div data-search-item className="w-full max-w-5xl">

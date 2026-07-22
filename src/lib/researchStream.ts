@@ -38,7 +38,16 @@ interface StartOptions {
   /** Fired once with the final payload (array of raw transaction records). */
   onComplete: (rawTransactions: unknown[]) => void
   onError: (detail: string) => void
+  /**
+   * Fired once when no byte has arrived within STALL_AFTER_MS of the request
+   * starting — the tell-tale of a corporate proxy buffering the long stream.
+   * Cleared automatically (onStall(false)) as soon as data starts flowing.
+   */
+  onStall?: (stalled: boolean) => void
 }
+
+/** No data within this window ⇒ almost certainly a buffering proxy/VPN. */
+const STALL_AFTER_MS = 15000
 
 export interface ResearchStreamHandle {
   abort: () => void
@@ -53,7 +62,7 @@ function extractFinalArray(value: unknown): unknown[] | null {
   return null
 }
 
-export function startResearchStream({ url, range, onEvent, onComplete, onError }: StartOptions): ResearchStreamHandle {
+export function startResearchStream({ url, range, onEvent, onComplete, onError, onStall }: StartOptions): ResearchStreamHandle {
   const controller = new AbortController()
   let finished = false // completion or error already delivered
   let aborted = false
@@ -145,16 +154,31 @@ export function startResearchStream({ url, range, onEvent, onComplete, onError }
     }
   }
 
-  /** Watchdog: logs a warning every 15 s while the stream is open but silent —
-   *  makes response buffering (corporate proxy/VPN) visible in the console. */
+  /** Watchdog: if no byte arrives within STALL_AFTER_MS the response is almost
+   *  certainly being buffered by a proxy/VPN — raise the stall flag so the UI
+   *  can tell the user. Started right away (before the response even resolves),
+   *  because a buffering proxy also stalls the response headers themselves. */
   let gotData = false
-  let watchdog: number | null = null
-  const stopWatchdog = () => {
-    if (watchdog !== null) {
-      window.clearInterval(watchdog)
-      watchdog = null
+  let stallTimer: number | null = null
+  const clearStall = () => {
+    if (stallTimer !== null) {
+      window.clearTimeout(stallTimer)
+      stallTimer = null
     }
   }
+  const armStall = () => {
+    stallTimer = window.setTimeout(() => {
+      if (!finished && !aborted && !gotData) onStall?.(true)
+    }, STALL_AFTER_MS)
+  }
+  /** First byte from the backend clears the warning and disarms the watchdog. */
+  const markData = () => {
+    if (gotData) return
+    gotData = true
+    clearStall()
+    onStall?.(false)
+  }
+  armStall()
 
   ;(async () => {
     try {
@@ -177,18 +201,6 @@ export function startResearchStream({ url, range, onEvent, onComplete, onError }
         phase: '',
         message: `Strumień otwarty (HTTP ${response.status}, ${response.headers.get('content-type') ?? 'brak content-type'}) — czekam na dane z workflow...`,
       })
-      let silentFor = 0
-      watchdog = window.setInterval(() => {
-        if (finished || aborted || gotData) {
-          stopWatchdog()
-          return
-        }
-        silentFor += 15
-        onEvent({
-          phase: '',
-          message: `Wciąż brak danych z backendu (${silentFor} s od otwarcia strumienia) — jeśli to się utrzymuje, odpowiedź jest prawdopodobnie buforowana po drodze (proxy/VPN).`,
-        })
-      }, 15000)
 
       const reader = response.body.getReader()
       const decoder = new TextDecoder()
@@ -197,10 +209,7 @@ export function startResearchStream({ url, range, onEvent, onComplete, onError }
       for (;;) {
         const { done, value } = await reader.read()
         if (done) break
-        if (!gotData && value && value.length > 0) {
-          gotData = true
-          stopWatchdog()
-        }
+        if (value && value.length > 0) markData()
         buffer += decoder.decode(value, { stream: true })
         // process complete lines; SSE events end with \n\n but a per-line pass
         // covers both SSE and NDJSON (JSON payloads are single-line)
@@ -225,13 +234,14 @@ export function startResearchStream({ url, range, onEvent, onComplete, onError }
       const reason = err instanceof Error ? `${err.name}: ${err.message}` : String(err)
       fail(`${reason}\nPOST ${url}\n${new Date().toISOString()}`)
     } finally {
-      stopWatchdog()
+      clearStall()
     }
   })()
 
   return {
     abort: () => {
       aborted = true
+      clearStall()
       controller.abort()
     },
   }
