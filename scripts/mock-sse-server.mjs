@@ -1,19 +1,21 @@
 /**
- * Dev-owy mock backendu SSE — do szybkiej iteracji nad frontendem bez n8n.
+ * Dev mock of the SSE backend — for fast frontend iteration without n8n.
  *
- * Streamuje NDJSON z pełnym protokołem Mapy Misji (10 faz + finalna tablica)
- * w ~25 s, dokładnie w formacie workflow "Poland RE Deals - Live Research SSE".
+ * Streams NDJSON with the full Mission Map protocol (10 phases + final array)
+ * in ~25 s, in the exact format of the "Poland RE Deals - Live Research SSE"
+ * workflow. Event messages are intentionally Polish — they mirror the real
+ * backend protocol 1:1; the frontend translates them at render time.
  *
- * Użycie:
+ * Usage:
  *   node scripts/mock-sse-server.mjs
- *   # w .env.local na czas testu:
+ *   # in .env.local for the duration of the test:
  *   # VITE_N8N_SSE_WEBHOOK_URL=http://localhost:5678/webhook/research-sse
  */
 import http from 'node:http'
 
 const PORT = 5678
 
-/** [event, opóźnienie przed KOLEJNYM eventem w ms] */
+/** [event, delay before the NEXT event in ms] */
 const EVENTS = [
   [{ phase_id: 'init', phase: 'Inicjalizacja', message: 'Połączono z backendem — rozpoczynam deep research rynku nieruchomości w Polsce (okno: ostatnie 30 dni)...' }, 1200],
   [{ phase_id: 'research_launch', phase: 'Start researchu', message: 'Uruchamiam 3 równoległe zadania deep research: sprzedaże i przejęcia · finansowania, refinansowania i JV · komunikaty kancelarii prawnych...', total: 3 }, 1600],
@@ -108,6 +110,10 @@ const server = http.createServer((req, res) => {
     return
   }
 
+  // Drain the request body — leaving it unconsumed can make Node reset the
+  // socket mid-stream (flaky "network error" in the browser on Windows).
+  req.resume()
+
   console.log(`[${new Date().toLocaleTimeString()}] research start`)
   res.writeHead(200, {
     ...CORS,
@@ -140,5 +146,5 @@ const server = http.createServer((req, res) => {
 
 server.listen(PORT, () => {
   console.log(`Mock SSE server: POST http://localhost:${PORT}/webhook/research-sse`)
-  console.log('Ustaw VITE_N8N_SSE_WEBHOOK_URL na powyższy adres i odpal npm run dev.')
+  console.log('Point VITE_N8N_SSE_WEBHOOK_URL at the address above and run npm run dev.')
 })

@@ -363,15 +363,16 @@ interface SearchingStateProps {
   entries: LogEntry[]
   /** Sidebar toggle: hides the robot + bubble (a glowing dot rides the path instead). */
   showAvatar: boolean
+  /** Sidebar toggle: shows/hides the mission console (kept mounted so entries survive). */
+  showLog: boolean
 }
 
-export default function SearchingState({ cancelled, failed, mission, entries, showAvatar }: SearchingStateProps) {
+export default function SearchingState({ cancelled, failed, mission, entries, showAvatar, showLog }: SearchingStateProps) {
   const { lang, t } = useI18n()
   const rootRef = useRef<HTMLDivElement>(null)
   const [bubbleText, setBubbleText] = useState('')
-  const [showLog, setShowLog] = useState(true)
   const intervalRef = useRef<number | null>(null)
-  /** Po pierwszym otwarciu przebiegu zmiana języka nie powtarza tekstu „startuję”. */
+  /** After the run has opened once, a language switch must not replay the "starting" line. */
   const openedRef = useRef(false)
 
   // entrance stagger — mount only
@@ -396,7 +397,7 @@ export default function SearchingState({ cancelled, failed, mission, entries, sh
     if (cancelled || failed) return
     const pool = MESSAGE_POOL[lang]
     if (openedRef.current) {
-      // zmiana języka w trakcie biegu — od razu tekst z nowej puli, bez „startuję”
+      // language switched mid-run — pick from the new pool right away, no "starting" line
       setBubbleText(pool[Math.floor(Math.random() * pool.length)])
     } else {
       openedRef.current = true

@@ -12,20 +12,22 @@ import { N8N_SSE_WEBHOOK_URL } from './config'
 import { useI18n } from './lib/i18n'
 import type { LogEntry } from './components/BackendLog'
 
-/** 'failed' zostaje na ekranie misji: błąd ląduje w konsoli, robot panikuje. */
+/** 'failed' stays on the mission screen: the error lands in the console, the robot panics. */
 export type Phase = 'idle' | 'searching' | 'cancelled' | 'failed' | 'results'
 
 const SHOW_AVATAR_KEY = 'dentons-re-show-avatar'
+const SHOW_LOG_KEY = 'dentons-re-show-log'
 
 export default function App() {
   const { lang, toggle, t } = useI18n()
   const [phase, setPhase] = useState<Phase>('idle')
   const [timeRange, setTimeRange] = useState('30d')
   const [showAvatar, setShowAvatar] = useState(() => localStorage.getItem(SHOW_AVATAR_KEY) !== '0')
+  const [showLog, setShowLog] = useState(() => localStorage.getItem(SHOW_LOG_KEY) !== '0')
   const [results, setResults] = useState<Transaction[]>([])
   const [logEntries, setLogEntries] = useState<LogEntry[]>([])
   const [mission, setMission] = useState<MissionState>({ idx: 0, progress: 0 })
-  /** Klucz przebiegu — remount SearchingState przy każdym starcie (świeży stan dymka/logów). */
+  /** Run key — remounts SearchingState on every start (fresh bubble/log state). */
   const [runId, setRunId] = useState(0)
   const phaseRef = useRef<Phase>(phase)
   const stageRef = useRef<HTMLDivElement>(null)
@@ -110,12 +112,12 @@ export default function App() {
       range: timeRange,
       onEvent: (event) => {
         if (!runActiveRef.current) return
-        // mapowanie backendowego phase_id na checkpoint frontendu (merge dedup+gaps, split deepening)
+        // map the backend phase_id onto a frontend checkpoint (merge dedup+gaps, split deepening)
         const resolved = event.phaseId !== undefined ? resolvePhase(event.phaseId, event.progress ?? 0) : null
         appendLog(event.phase, event.message, resolved ? PHASES[resolved.idx].id : undefined, event.meta)
-        if (!resolved) return // event bez znanego phase_id → tylko log
+        if (!resolved) return // event with an unknown phase_id → log only
         setMission((prev) => {
-          // guard monotoniczny: indeks tylko rośnie, progress rośnie w obrębie fazy
+          // monotonic guard: the index only grows, progress only grows within a phase
           if (resolved.idx < prev.idx || (resolved.idx === prev.idx && resolved.progress <= prev.progress)) {
             return event.meta ? { ...prev, meta: { ...prev.meta, ...event.meta } } : prev
           }
@@ -141,7 +143,7 @@ export default function App() {
         if (!runActiveRef.current) return
         runActiveRef.current = false
         streamRef.current = null
-        // błąd zostaje na ekranie misji: pełny komunikat w konsoli, robot panikuje
+        // the error stays on the mission screen: full message in the console, the robot panics
         appendLog('BŁĄD', detail, undefined, undefined, 'error')
         setPhase('failed')
       },
@@ -186,6 +188,14 @@ export default function App() {
     })
   }, [])
 
+  const handleToggleLog = useCallback(() => {
+    setShowLog((prev) => {
+      const next = !prev
+      localStorage.setItem(SHOW_LOG_KEY, next ? '1' : '0')
+      return next
+    })
+  }, [])
+
   const timeRangeLabel = TIME_RANGES.find((r) => r.value === timeRange)?.label[lang] ?? ''
 
   return (
@@ -201,6 +211,8 @@ export default function App() {
         onMockError={handleMockError}
         showAvatar={showAvatar}
         onToggleAvatar={handleToggleAvatar}
+        showLog={showLog}
+        onToggleLog={handleToggleLog}
       />
 
       <main className="relative z-10 flex min-h-[60vh] flex-1 flex-col overflow-hidden">
@@ -232,6 +244,7 @@ export default function App() {
               mission={mission}
               entries={logEntries}
               showAvatar={showAvatar}
+              showLog={showLog}
             />
           )}
           {phase === 'results' && <ResultsTable rows={results} timeRangeLabel={timeRangeLabel} />}

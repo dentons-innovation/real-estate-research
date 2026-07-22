@@ -19,6 +19,8 @@ interface SidebarProps {
   onMockError: () => void
   showAvatar: boolean
   onToggleAvatar: () => void
+  showLog: boolean
+  onToggleLog: () => void
 }
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
@@ -49,6 +51,8 @@ export default function Sidebar({
   onMockError,
   showAvatar,
   onToggleAvatar,
+  showLog,
+  onToggleLog,
 }: SidebarProps) {
   const { lang, setLang, t } = useI18n()
   const searching = phase === 'searching'
@@ -129,6 +133,44 @@ export default function Sidebar({
         </button>
         <p className="mt-1.5 text-[11px] leading-snug text-white/35">
           {t.avatarHint}
+        </p>
+
+        {/* mission console visibility — same switch style as the avatar toggle */}
+        <button
+          type="button"
+          role="switch"
+          aria-checked={showLog}
+          aria-controls="mission-console"
+          onClick={onToggleLog}
+          className="mt-3 flex w-full cursor-pointer items-center justify-between gap-3 rounded-lg border border-white/15 bg-white/5 px-3.5 py-2.5 transition-colors hover:border-den-light/50 focus-visible:border-den-light focus-visible:outline-none"
+        >
+          <span className="flex items-center gap-2.5 text-[13px] font-medium text-white/75">
+            <svg
+              className={`h-4 w-4 transition-colors ${showLog ? 'text-den-gold/80' : 'text-white/30'}`}
+              viewBox="0 0 16 16"
+              fill="none"
+              aria-hidden="true"
+            >
+              <rect x="2" y="3" width="12" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.3" />
+              <path d="m4.5 6.5 2 1.75-2 1.75" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M8.5 10.5h3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+            </svg>
+            {t.logToggle}
+          </span>
+          <span
+            className={`relative h-5 w-9 shrink-0 rounded-full transition-colors duration-300 ${
+              showLog ? 'bg-den-light' : 'bg-white/15'
+            }`}
+          >
+            <span
+              className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow-[0_1px_4px_rgba(0,0,0,0.4)] transition-transform duration-300 ${
+                showLog ? 'translate-x-4' : ''
+              }`}
+            />
+          </span>
+        </button>
+        <p className="mt-1.5 text-[11px] leading-snug text-white/35">
+          {t.logHint}
         </p>
 
         {/* language switcher — PL / EN */}
