@@ -49,7 +49,8 @@ function hostLabel(url: string): string {
 }
 
 function sortKeyFor(column: ColumnDef, row: Transaction, lang: string): string | number {
-  const raw = row[column.key]
+  // String() guards against malformed rows where a field is not a string
+  const raw = String(row[column.key] ?? '')
   if (column.kind === 'date') return dateSortKey(raw)
   if (column.kind === 'value') return valueSortKey(raw)
   return raw.toLocaleLowerCase(lang)
@@ -57,44 +58,50 @@ function sortKeyFor(column: ColumnDef, row: Transaction, lang: string): string |
 
 function CellContent({ column, row }: { column: ColumnDef; row: Transaction }) {
   const { lang, t } = useI18n()
-  const value = row[column.key]
+  // String() guards against malformed rows where a field is not a string
+  const value = String(row[column.key] ?? '')
+  const placeholder = <span className="text-[13px] text-den-ink/35 italic">{t.notDisclosed}</span>
 
-  if (value === 'not disclosed' && column.kind !== 'links') {
-    return <span className="text-[13px] text-den-ink/35 italic">{t.notDisclosed}</span>
+  if (value.trim() === '' || value === 'not disclosed') {
+    return placeholder
   }
 
   switch (column.kind) {
     case 'date':
-      return <span className="text-[13px] font-semibold whitespace-nowrap text-den-xdark tabular-nums">{value}</span>
+      return <span className="text-[13px] font-semibold break-words [overflow-wrap:anywhere] text-den-xdark tabular-nums">{value}</span>
     case 'value':
-      return <span className="text-[13px] font-semibold whitespace-nowrap text-den-xdark">{value}</span>
-    case 'status':
+      return <span className="text-[13px] font-semibold break-words [overflow-wrap:anywhere] text-den-xdark">{value}</span>
+    case 'status': {
+      const status = value.toLowerCase()
       return (
         <span
-          className={`inline-block max-w-full rounded-full border px-2.5 py-1 text-[11px] leading-snug font-semibold break-words whitespace-normal capitalize ${
-            STATUS_STYLES[value] ?? 'border-den-grey bg-den-grey/20 text-den-ink/60'
+          className={`inline-block max-w-full rounded-full border px-2.5 py-1 text-[11px] leading-snug font-semibold break-words [overflow-wrap:anywhere] whitespace-normal capitalize ${
+            STATUS_STYLES[status] ?? 'border-den-grey bg-den-grey/20 text-den-ink/60'
           }`}
         >
-          {lang === 'pl' ? (STATUS_LABELS_PL[value] ?? value) : value}
+          {lang === 'pl' ? (STATUS_LABELS_PL[status] ?? value) : value}
         </span>
       )
+    }
     case 'sector':
       return (
-        <span className="inline-block max-w-full rounded-full border border-den-light/40 bg-den-light/10 px-2.5 py-1 text-[11px] leading-snug font-medium break-words whitespace-normal text-den-dark capitalize">
-          {lang === 'pl' ? (SECTOR_LABELS_PL[value] ?? value) : value}
+        <span className="inline-block max-w-full rounded-full border border-den-light/40 bg-den-light/10 px-2.5 py-1 text-[11px] leading-snug font-medium break-words [overflow-wrap:anywhere] whitespace-normal text-den-dark capitalize">
+          {lang === 'pl' ? (SECTOR_LABELS_PL[value.toLowerCase()] ?? value) : value}
         </span>
       )
-    case 'links':
+    case 'links': {
+      const urls = splitSources(value)
+      if (urls.length === 0) return placeholder
       return (
         <span className="flex flex-col gap-1.5">
-          {splitSources(value).map((url) => (
+          {urls.map((url) => (
             <a
               key={url}
               href={url}
               target="_blank"
               rel="noopener noreferrer"
               title={url}
-              className="group/link inline-flex items-center gap-1.5 text-[13px] font-medium text-den-teal hover:text-[#007a72] hover:underline"
+              className="group/link inline-flex items-center gap-1.5 text-[13px] font-medium break-words [overflow-wrap:anywhere] text-den-teal hover:text-[#007a72] hover:underline"
             >
               <svg className="h-3 w-3 shrink-0 opacity-60 group-hover/link:opacity-100" viewBox="0 0 12 12" fill="none" aria-hidden="true">
                 <path d="M5 2H2.5A1.5 1.5 0 0 0 1 3.5v6A1.5 1.5 0 0 0 2.5 11h6A1.5 1.5 0 0 0 10 9.5V7" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
@@ -105,8 +112,9 @@ function CellContent({ column, row }: { column: ColumnDef; row: Transaction }) {
           ))}
         </span>
       )
+    }
     default:
-      return <span className="text-[13px] leading-relaxed text-den-ink/80">{value}</span>
+      return <span className="text-[13px] leading-relaxed break-words [overflow-wrap:anywhere] text-den-ink/80">{value}</span>
   }
 }
 
@@ -216,15 +224,18 @@ export default function ResultsTable({ rows }: { rows: Transaction[] }) {
             {sortedRows.map((row, rowIndex) => {
               const zebra = rowIndex % 2 === 1 ? 'bg-[#f6f2f9]' : 'bg-white'
               return (
-                <tr key={row.dealAsset} className="group">
+                <tr key={`${rowIndex}-${row.dealAsset}`} className="group">
                   {COLUMNS.map((column, colIndex) => (
                     <td
                       key={column.key}
                       className={`border-b border-[#ece5f2] px-4 py-3.5 align-top transition-colors group-hover:bg-[#efe6f6] ${zebra} ${
                         colIndex === 0 ? 'sticky left-0 z-10 border-r border-r-[#e2d8eb]' : ''
-                      } ${column.kind === 'text' && column.key === 'opisTransakcji' ? 'max-w-[420px]' : 'max-w-[300px]'}`}
+                      }`}
                     >
-                      <CellContent column={column} row={row} />
+                      {/* width clamp lives on a block wrapper — max-width on a <td> is not reliable in auto table layout */}
+                      <div className={column.key === 'opisTransakcji' ? 'max-w-[420px]' : 'max-w-[300px]'}>
+                        <CellContent column={column} row={row} />
+                      </div>
                     </td>
                   ))}
                 </tr>

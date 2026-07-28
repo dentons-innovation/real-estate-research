@@ -63,10 +63,35 @@ export function valueSortKey(value: string): number {
   return amount
 }
 
+/** Placeholder junk the research model sometimes emits instead of real data. */
+const EMPTY_MARKERS = new Set(['', '[]', '{}', 'null', 'undefined', 'none', 'n/a', 'na', '-', '–', '—', '...'])
+
+/** Hard cap so a runaway backend string can never blow the table layout up. */
+const MAX_CELL_LENGTH = 600
+
+/**
+ * Coerces one raw backend field into a display-safe cell string:
+ * numbers/booleans/arrays are stringified, whitespace is collapsed, placeholder
+ * junk ("[]", "null", "-", …) and blanks become "not disclosed", and the length
+ * is capped at MAX_CELL_LENGTH.
+ */
+function normalizeCell(value: unknown): string {
+  let text: string
+  if (typeof value === 'string') text = value
+  else if (typeof value === 'number' || typeof value === 'boolean') text = String(value)
+  else if (Array.isArray(value)) {
+    text = value.filter((v) => typeof v === 'string' || typeof v === 'number').join('; ')
+  } else return 'not disclosed'
+  text = text.replace(/\s+/g, ' ').trim()
+  if (EMPTY_MARKERS.has(text.toLowerCase())) return 'not disclosed'
+  if (text.length > MAX_CELL_LENGTH) text = text.slice(0, MAX_CELL_LENGTH - 1).trimEnd() + '…'
+  return text
+}
+
 /**
  * Maps raw backend records (keyed by the n8n workflow's original field names,
  * e.g. "Data ogłoszenia", "Deal/asset" — see COLUMNS[].apiKey) onto the frontend
- * Transaction model. Missing/blank fields fall back to "not disclosed".
+ * Transaction model. Missing/blank/junk fields fall back to "not disclosed".
  */
 export function mapApiTransactions(raw: unknown[]): Transaction[] {
   return raw
@@ -74,16 +99,25 @@ export function mapApiTransactions(raw: unknown[]): Transaction[] {
     .map((item) => {
       const row = {} as Record<keyof Transaction, string>
       for (const column of COLUMNS) {
-        const value = item[column.apiKey]
-        row[column.key] = typeof value === 'string' && value.trim() !== '' ? value : 'not disclosed'
+        row[column.key] = normalizeCell(item[column.apiKey])
       }
       return row as unknown as Transaction
     })
 }
 
+export function isHttpUrl(value: string): boolean {
+  try {
+    const protocol = new URL(value).protocol
+    return protocol === 'http:' || protocol === 'https:'
+  } catch {
+    return false
+  }
+}
+
+/** Splits the sources field into individual http(s) URLs; junk entries are dropped. */
 export function splitSources(value: string): string[] {
   return value
-    .split(';')
+    .split(/[;\n]/)
     .map((s) => s.trim())
-    .filter(Boolean)
+    .filter(isHttpUrl)
 }

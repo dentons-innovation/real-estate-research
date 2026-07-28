@@ -62,6 +62,10 @@ export default function MissionTimeline({ mission, cancelled, failed, showAvatar
   // the path starts so that the large robot never sticks out of the band at the edges
   const pad = clamp(Math.max(w * 0.05, showAvatar ? robotW / 2 + 4 : 0), 24, 96)
   const base = h - 46 // path baseline; the numbers/labels zone sits below it
+  // Checkpoint labels only when neighbours cannot collide: the longest label at
+  // ~5.1px/char (8.5px mono) plus breathing room must fit within one checkpoint gap.
+  const longestLabelPx = Math.max(...PHASES.map((p) => p.label[lang].length)) * 5.1
+  const showLabels = w > 0 && (w - 2 * pad) / LAST_PHASE >= longestLabelPx + 14
 
   const curve = useCallback(
     (t: number) => ({
@@ -266,16 +270,18 @@ export default function MissionTimeline({ mission, cancelled, failed, showAvatar
                   >
                     {p.num}
                   </text>
-                  <text
-                    x={x}
-                    y={y + 30}
-                    textAnchor="middle"
-                    className={`hidden font-mono text-[8.5px] uppercase lg:block ${
-                      active ? 'fill-den-gold' : done ? 'fill-den-teal/80' : 'fill-white/35'
-                    }`}
-                  >
-                    {p.label[lang]}
-                  </text>
+                  {showLabels && (
+                    <text
+                      x={x}
+                      y={y + 30}
+                      textAnchor="middle"
+                      className={`font-mono text-[8.5px] uppercase ${
+                        active ? 'fill-den-gold' : done ? 'fill-den-teal/80' : 'fill-white/35'
+                      }`}
+                    >
+                      {p.label[lang]}
+                    </text>
+                  )}
                 </g>
               )
             })}
