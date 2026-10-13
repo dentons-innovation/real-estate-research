@@ -1,32 +1,26 @@
 {
   "name": "dentons-re-research",
   "private": true,
-  "version": "1.0.0",
-  "description": "Dentons · Real Estate Research (demo) — frontend Mapy Misji + workflow n8n streamujący research przez SSE",
+  "version": "2.0.0",
+  "description": "Dentons · Real Estate Research — frontend Mapy Misji + backend researchu (Opoint, Tavily, Azure OpenAI) streamujący postęp przez SSE",
   "repository": {
     "type": "git",
     "url": "https://github.com/michaldabrowski-dentons/real-estate-research.git"
   },
   "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
-    "dev": "vite",
-    "build": "tsc --noEmit && vite build",
-    "preview": "vite preview",
-    "start": "node server.mjs",
-    "mock": "node scripts/mock-sse-server.mjs"
-  },
-  "dependencies": {
-    "gsap": "^3.12.7",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0"
-  },
-  "devDependencies": {
-    "@tailwindcss/vite": "^4.1.7",
-    "@types/react": "^19.1.2",
-    "@types/react-dom": "^19.1.2",
-    "@vitejs/plugin-react": "^4.4.1",
-    "tailwindcss": "^4.1.7",
-    "typescript": "^5.8.3",
-    "vite": "^6.3.5"
+    "dev:backend": "npm run dev -w @re/backend",
+    "dev:frontend": "npm run dev -w @re/frontend",
+    "dev:mock": "npm run dev:mock -w @re/backend",
+    "build": "npm run build -w @re/backend && npm run build -w @re/frontend",
+    "typecheck": "npm run typecheck -w @re/backend && npm run typecheck -w @re/frontend",
+    "test": "npm run test -w @re/backend"
   }
 }

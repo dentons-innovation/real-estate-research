@@ -1,0 +1,33 @@
+{
+  "name": "@re/backend",
+  "private": true,
+  "version": "2.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch --env-file-if-exists=.env src/index.ts",
+    "dev:mock": "tsx watch src/index.ts --mock",
+    "build": "tsup",
+    "start": "node dist/index.js",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "probe:opoint": "tsx --env-file-if-exists=.env scripts/probe-opoint.ts",
+    "probe:tavily": "tsx --env-file-if-exists=.env scripts/probe-tavily.ts",
+    "probe:llm": "tsx --env-file-if-exists=.env scripts/probe-llm.ts",
+    "probe:queries": "tsx --env-file-if-exists=.env scripts/probe-queries.ts"
+  },
+  "dependencies": {
+    "@fastify/cors": "^11.3.0",
+    "@fastify/rate-limit": "^11.2.0",
+    "fastify": "^5.12.5",
+    "openai": "^7.23.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@re/shared": "*",
+    "@types/node": "^22.15.0",
+    "tsup": "^8.5.1",
+    "tsx": "^4.23.15",
+    "typescript": "^5.8.3",
+    "vitest": "^5.0.2"
+  }
+}

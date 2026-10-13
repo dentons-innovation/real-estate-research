@@ -5,9 +5,13 @@ node_modules/
 dist/
 *.tsbuildinfo
 
-# local environment (adres instancji n8n) — wzór w .env.example
+# local environment (klucze API, hasło dostępu) — wzory w apps/*/.env.example
+.env
 .env.local
 .env.*.local
+
+# recorded provider responses (may contain licensed article texts)
+apps/backend/test/fixtures/recorded/
 
 # logs
 *.log
