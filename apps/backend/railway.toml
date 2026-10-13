@@ -1,0 +1,16 @@
+# Railway service: backend
+# Service settings → Root Directory: /   ·   Config file path: /apps/backend/railway.toml
+# No public domain needed: the frontend service reaches it over private networking.
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "apps/backend/Dockerfile"
+watchPatterns = ["apps/backend/**", "packages/shared/**", "package.json", "package-lock.json", "tsconfig.base.json"]
+
+[deploy]
+healthcheckPath = "/healthz"
+healthcheckTimeout = 60
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 5
+# research jobs live in memory — keep exactly one replica
+numReplicas = 1

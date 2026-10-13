@@ -1,0 +1,15 @@
+# Railway service: frontend
+# Service settings → Root Directory: /   ·   Config file path: /apps/frontend/railway.toml
+# Variable to set on this service (the backend service must be named "backend"):
+#   BACKEND_URL = http://${{backend.RAILWAY_PRIVATE_DOMAIN}}:${{backend.PORT}}
+
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "apps/frontend/Dockerfile"
+watchPatterns = ["apps/frontend/**", "packages/shared/**", "package.json", "package-lock.json", "tsconfig.base.json"]
+
+[deploy]
+healthcheckPath = "/healthz"
+healthcheckTimeout = 60
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 5

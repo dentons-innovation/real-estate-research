@@ -1,0 +1,40 @@
+{
+	# TLS is terminated by the Railway edge
+	auto_https off
+	admin off
+}
+
+:{$PORT:8080} {
+	encode zstd gzip
+
+	handle /healthz {
+		respond "ok" 200
+	}
+
+	# The browser only ever talks to this origin; the backend stays private.
+	handle /api/* {
+		reverse_proxy {$BACKEND_URL} {
+			# pass Server-Sent Events through as they are written
+			flush_interval -1
+			transport http {
+				# a research run is quiet for seconds at a time, heartbeats come every 10 s
+				read_timeout 15m
+			}
+		}
+	}
+
+	handle {
+		root * /srv
+		@assets path /assets/*
+		header @assets Cache-Control "public, max-age=31536000, immutable"
+		@html path / /index.html
+		header @html Cache-Control "no-cache"
+		header {
+			X-Content-Type-Options "nosniff"
+			Referrer-Policy "strict-origin-when-cross-origin"
+			X-Frame-Options "DENY"
+		}
+		try_files {path} /index.html
+		file_server
+	}
+}
