@@ -8,8 +8,9 @@ import {
   type ColumnDef,
   type Transaction,
 } from '../data/transactions'
-import { downloadCsv, toCsv } from '../lib/csv'
 import { useI18n } from '../lib/i18n'
+import type { ResearchRange } from '../lib/range'
+import { downloadXlsx } from '../lib/xlsx'
 
 interface SortState {
   key: keyof Transaction
@@ -163,7 +164,7 @@ function CellContent({ column, row }: { column: ColumnDef; row: Transaction }) {
   }
 }
 
-export default function ResultsTable({ rows }: { rows: Transaction[] }) {
+export default function ResultsTable({ rows, range }: { rows: Transaction[]; /** Period the shown run covered. */ range: ResearchRange }) {
   const { lang, t } = useI18n()
   const [sort, setSort] = useState<SortState>({ key: 'dataOgloszenia', dir: 'desc' })
   const rootRef = useRef<HTMLDivElement>(null)
@@ -186,7 +187,10 @@ export default function ResultsTable({ rows }: { rows: Transaction[] }) {
 
   const handleExport = () => {
     const stamp = new Date().toISOString().slice(0, 10)
-    downloadCsv(`dentons-research-${stamp}.csv`, toCsv(sortedRows, COLUMNS, lang))
+    void downloadXlsx(`dentons-research-${stamp}.xlsx`, sortedRows, COLUMNS, lang).catch((err) => {
+      console.error('XLSX export failed', err)
+      window.alert(t.exportFailed)
+    })
   }
 
   useEffect(() => {
@@ -209,7 +213,7 @@ export default function ResultsTable({ rows }: { rows: Transaction[] }) {
             <span className="font-normal text-den-light">{t.transactionCount(rows.length)}</span>
           </h2>
           <p className="mt-1 text-[13px] text-white/45">
-            {t.resultsRange} · {t.resultsMarket}
+            {t.resultsRange[range]} · {t.resultsMarket}
           </p>
         </div>
 
@@ -221,7 +225,7 @@ export default function ResultsTable({ rows }: { rows: Transaction[] }) {
             <path d="M9 2v9m0 0 3.5-3.5M9 11 5.5 7.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
             <path d="M2.5 12.5v1.75A1.75 1.75 0 0 0 4.25 16h9.5a1.75 1.75 0 0 0 1.75-1.75V12.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
           </svg>
-          {t.exportCsv}
+          {t.exportXlsx}
         </button>
       </div>
 

@@ -1,6 +1,6 @@
 import type { LlmClient } from '../clients/llm'
 import { tierOf, type DomainLists } from '../config/domains'
-import { parseIsoDate } from '../deals/dates'
+import { parseIsoDate, yearConfirmed } from '../deals/dates'
 import { assetTokens } from '../deals/entityNames'
 import type { Article, AuditEntry, CandidateDeal, Evidence, EvidenceField, MergedDeal, PartyEvidence } from '../types'
 import { checkEvidence, dateInQuote, dateQuoteInText, prepareText, quoteInText, type PreparedText } from '../verify/evidence'
@@ -12,6 +12,8 @@ import { articleExtractionSchema, deepeningExtractionSchema, type ExtractedDeal 
 export interface VerifyContext {
   lists: DomainLists
   audit: AuditEntry[]
+  /** Window longer than a month: a date quoted without its year must be confirmed by the publication date. */
+  longWindow?: boolean
 }
 
 const clean = (value: string | null | undefined): string => (value ?? '').replace(/\s+/g, ' ').trim()
@@ -104,7 +106,14 @@ export function verifyExtractedDeal(deal: ExtractedDeal, article: Article, text:
   let announcementDate: string | null = null
   let dateBasis: CandidateDeal['dateBasis'] = null
   const stated = parseIsoDate(deal.announcement_date)
-  if (stated && deal.announcement_date_quote && dateQuoteInText(deal.announcement_date_quote, text) && dateInQuote(stated, deal.announcement_date_quote)) {
+  if (
+    stated &&
+    deal.announcement_date_quote &&
+    dateQuoteInText(deal.announcement_date_quote, text) &&
+    dateInQuote(stated, deal.announcement_date_quote) &&
+    // in a short window a wrong year falls outside the window anyway; in a long one it could pass as a real date
+    (!ctx.longWindow || yearConfirmed(stated, deal.announcement_date_quote, article.publishedAt))
+  ) {
     announcementDate = stated
     dateBasis = 'quote'
   } else {

@@ -1,5 +1,6 @@
 import type { TavilyResult } from '../clients/tavily'
 import { inDomainList } from '../config/domains'
+import { LONG_WINDOW_DAYS } from '../deals/dates'
 import { compareDeals, keyOfCandidate, keyOfMerged } from '../deals/dedup'
 import { assetTokens, partyTokens } from '../deals/entityNames'
 import { planDeepening, type DeepeningPlan } from '../deals/gaps'
@@ -125,7 +126,7 @@ export async function runDeepening(deals: MergedDeal[], ctx: PipelineContext): P
     const extractions = await Promise.all(
       articles.map(async (article) => {
         try {
-          return await extractForDeal(article, deal, gaps, ctx.llm, { lists: ctx.lists, audit: ctx.audit }, ctx.signal)
+          return await extractForDeal(article, deal, gaps, ctx.llm, { lists: ctx.lists, audit: ctx.audit, longWindow: ctx.window.days > LONG_WINDOW_DAYS }, ctx.signal)
         } catch (err) {
           if (isAbort(err) || ctx.signal.aborted) throw err
           return []

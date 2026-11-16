@@ -167,6 +167,10 @@ describe('HTTP API', () => {
   it('rejects bad windows and unknown jobs', async () => {
     const a = await start()
     expect((await a.server.inject({ method: 'POST', url: '/api/research/start', headers: AUTH, payload: { range: '400d' } })).statusCode).toBe(400)
+    // the longest period the app offers is accepted with the default configuration
+    const year = await a.server.inject({ method: 'POST', url: '/api/research/start', headers: AUTH, payload: { range: '365d' } })
+    expect(year.statusCode).toBe(200)
+    expect(year.json()).toMatchObject({ window: { days: 365 } })
     expect((await a.server.inject({ method: 'GET', url: '/api/research/poll?id=6f1c1a52-3f0e-4c59-9f0b-0d7f3f1f2a11', headers: AUTH })).statusCode).toBe(404)
     expect((await a.server.inject({ method: 'GET', url: '/api/research/poll?id=nonsense', headers: AUTH })).statusCode).toBe(400)
   })

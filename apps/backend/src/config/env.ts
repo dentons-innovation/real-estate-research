@@ -62,7 +62,7 @@ const schema = z.object({
     }),
 
   DEFAULT_RANGE_DAYS: int(30, 1, 365),
-  MAX_RANGE_DAYS: int(90, 1, 365),
+  MAX_RANGE_DAYS: int(365, 1, 365),
 
   /** Master switch: false keeps Opoint out of every run even when a token is present. */
   OPOINT_ENABLED: bool(true),

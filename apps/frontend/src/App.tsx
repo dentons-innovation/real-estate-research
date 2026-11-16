@@ -9,6 +9,7 @@ import { mapApiTransactions, type Transaction } from './data/transactions'
 import { startResearchStream, type ResearchStreamHandle, type ResearchEventMeta } from './lib/researchStream'
 import { fetchOpointAvailability, type OpointAvailability } from './lib/health'
 import { PHASES, LAST_PHASE, resolvePhase, type MissionState } from './lib/phases'
+import { DEFAULT_RANGE, type ResearchRange } from './lib/range'
 import { API_LABEL } from './config'
 import { useI18n } from './lib/i18n'
 import type { LogEntry } from './components/BackendLog'
@@ -37,6 +38,10 @@ export default function App({ onAuthError }: AppProps) {
   /** Toast text next to the Opoint switch; null when hidden. */
   const [opointNotice, setOpointNotice] = useState<string | null>(null)
   const opointNoticeTimerRef = useRef<number | null>(null)
+  /** Period of the next run; like Opoint it is never remembered, every session starts on one month. */
+  const [range, setRange] = useState<ResearchRange>(DEFAULT_RANGE)
+  /** Period of the run on screen — the selector may change while its results are still shown. */
+  const [runRange, setRunRange] = useState<ResearchRange>(DEFAULT_RANGE)
   const [results, setResults] = useState<Transaction[]>([])
   const [logEntries, setLogEntries] = useState<LogEntry[]>([])
   const [mission, setMission] = useState<MissionState>({ idx: 0, progress: 0 })
@@ -130,6 +135,7 @@ export default function App({ onAuthError }: AppProps) {
     setMission({ idx: 0, progress: 0 })
     setNetworkStalled(false)
     setRunId((r) => r + 1)
+    setRunRange(range)
     runActiveRef.current = true
     transitionTo('searching')
 
@@ -137,8 +143,7 @@ export default function App({ onAuthError }: AppProps) {
     setLogEntries([{ time, phase: '', message: `Łączenie z backendem (${API_LABEL})...` }])
     streamRef.current?.abort()
     streamRef.current = startResearchStream({
-      // one month for now; the backend also accepts other ranges and explicit from/to dates
-      range: '30d',
+      range,
       useOpoint,
       onAuthError: () => {
         runActiveRef.current = false
@@ -191,7 +196,7 @@ export default function App({ onAuthError }: AppProps) {
         if (runActiveRef.current) setNetworkStalled(stalled)
       },
     })
-  }, [transitionTo, settleTo, appendLog, onAuthError, useOpoint])
+  }, [transitionTo, settleTo, appendLog, onAuthError, useOpoint, range])
 
   const showOpointNotice = useCallback((text: string) => {
     if (opointNoticeTimerRef.current !== null) window.clearTimeout(opointNoticeTimerRef.current)
@@ -284,6 +289,8 @@ export default function App({ onAuthError }: AppProps) {
         opointAvailable={opointAvailability === 'available'}
         onToggleOpoint={handleToggleOpoint}
         opointNotice={opointNotice}
+        range={range}
+        onRangeChange={setRange}
       />
 
       <main className="relative z-10 flex min-h-[60vh] flex-1 flex-col overflow-hidden">
@@ -319,7 +326,7 @@ export default function App({ onAuthError }: AppProps) {
               networkStalled={networkStalled && phase === 'searching'}
             />
           )}
-          {phase === 'results' && <ResultsTable rows={results} />}
+          {phase === 'results' && <ResultsTable rows={results} range={runRange} />}
         </div>
       </main>
     </div>
