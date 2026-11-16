@@ -17,7 +17,8 @@ export interface DeepeningQuery {
   query: string
   /** Restrict to these sites; undefined = open web. */
   includeDomains?: string[]
-  scope: 'law' | 'press' | 'web'
+  /** law = the firms' own sites, legal = the legal press, press = legal and trade press, web = open web. */
+  scope: 'law' | 'legal' | 'press' | 'web'
   gap: Gap
 }
 
@@ -61,7 +62,7 @@ export function buildDeepeningQueries(deal: MergedDeal, gaps: Gap[], lists: Doma
       gap,
       query: text,
       scope,
-      includeDomains: scope === 'law' ? lists.lawFirms : scope === 'press' ? pressDomains : undefined,
+      includeDomains: scope === 'law' ? lists.lawFirms : scope === 'legal' ? lists.legalPress : scope === 'press' ? pressDomains : undefined,
     })
   }
 
@@ -75,8 +76,12 @@ export function buildDeepeningQueries(deal: MergedDeal, gaps: Gap[], lists: Doma
   if (advisorGaps.length > 0) {
     const gap = advisorGaps[0]
     const verb = financing ? 'advised financing' : 'advised'
+    // most productive first: the firms' own sites, then the legal press (it credits every firm on a deal,
+    // also firms outside our list), then the open web in both languages
     add(gap, join(asset, buyer ?? seller, verb), 'law')
+    add(gap, join(asset, buyer ?? seller, financing ? 'law firm advised on financing' : 'law firm advised on transaction'), 'legal')
     add(gap, join(assetPl, 'kancelaria doradzała', buyer ?? seller), 'web')
+    add(gap, join(asset, buyer, seller, 'law firm advised legal counsel'), 'web')
     add(gap, join(asset, buyer, seller, 'legal advisor counsel'), 'press')
     if (buyer || seller) add(gap, join(buyer, seller, city, financing ? 'advised financing' : 'advised acquisition', sector.en), 'law')
   }
@@ -96,6 +101,7 @@ export function buildDeepeningQueries(deal: MergedDeal, gaps: Gap[], lists: Doma
   // interleave by gap so every gap gets its best query before any gap gets its second
   const byGap = new Map<Gap, DeepeningQuery[]>()
   for (const c of candidates) byGap.set(c.gap, [...(byGap.get(c.gap) ?? []), c])
+  // the sort is stable, so the insertion order above (date, advisors, value, parties) breaks ties
   const gapOrder = [...byGap.keys()].sort((a, b) => GAP_WEIGHTS[b] - GAP_WEIGHTS[a])
   const out: DeepeningQuery[] = []
   const seen = new Set<string>()

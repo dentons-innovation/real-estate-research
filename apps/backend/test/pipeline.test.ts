@@ -50,7 +50,7 @@ describe('research pipeline (mock clients)', () => {
     for (const row of rows) {
       expect(Object.keys(row)).toEqual([...TRANSACTION_KEYS])
       expect(row['Źródła informacji']).toMatch(/^https:\/\//)
-      expect(row['Data ogłoszenia']).toMatch(/^\d{1,2}\.\d{2}\.\d{4}$/)
+      expect(row['Data ogłoszenia']).toMatch(/^\d{2}\.\d{2}\.\d{4}$/)
     }
     expect(outcome.result.meta.opoint_used).toBe(true)
 
@@ -177,7 +177,7 @@ describe('research pipeline (mock clients)', () => {
     const { byAsset, events } = await run()
     const park = byAsset('Bursztyn Park')!
     expect(park).toBeDefined()
-    expect(park['Data ogłoszenia']).toMatch(/^\d{1,2}\.\d{2}\.\d{4}$/)
+    expect(park['Data ogłoszenia']).toMatch(/^\d{2}\.\d{2}\.\d{4}$/)
     expect(park['Buyer / inwestor']).toBe('Nordsee Invest')
     expect(park['Seller legal advisor']).toBe('Lex Varsovia')
     expect(park['Deal value']).toBe('EUR 38 million')

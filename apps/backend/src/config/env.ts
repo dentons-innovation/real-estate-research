@@ -92,7 +92,7 @@ const schema = z.object({
 
   MAX_ARTICLES_FOR_EXTRACTION: int(120, 1, 1000),
   DEEPEN_LIMIT: int(15, 0, 200),
-  MAX_QUERIES_PER_DEAL: int(4, 1, 10),
+  MAX_QUERIES_PER_DEAL: int(6, 1, 10),
   MAX_NEW_SOURCES_PER_DEAL: int(4, 1, 20),
   DEEPEN_CONCURRENCY: int(3, 1, 20),
   STRICT_WINDOW: bool(true),

@@ -102,7 +102,7 @@ describe('research window', () => {
   })
 
   it('formats dates for the table and lists months', () => {
-    expect(toPlDate('2026-07-07')).toBe('7.07.2026')
+    expect(toPlDate('2026-07-07')).toBe('07.07.2026')
     expect(toPlDate(null)).toBe('')
     expect(monthsOfWindow({ from: '2026-08-30', to: '2026-09-29', days: 30 }).map((m) => m.en)).toEqual(['September', 'August'])
   })
@@ -467,14 +467,18 @@ describe('gaps and queries', () => {
   })
 
   it('always searches law firm sites when an advisor is missing', () => {
-    const queries = buildDeepeningQueries(base, gapsOf(base), lists, 4)
-    expect(queries).toHaveLength(4)
+    const queries = buildDeepeningQueries(base, gapsOf(base), lists, 6)
+    expect(queries).toHaveLength(6)
     expect(queries[0].scope).toBe('law')
     expect(queries[0].includeDomains).toEqual(lists.lawFirms)
     expect(queries[0].query).toBe('"Wisła Tower" Nordhaven Capital advised')
     expect(queries.every((q) => q.query.length <= 390)).toBe(true)
     // every gap gets a query before any gap gets a second one
     expect(new Set(queries.slice(0, 3).map((q) => q.gap)).size).toBe(3)
+    // the advisor gap then gets the legal press and the open web as well
+    const advisorScopes = queries.filter((q) => q.gap === 'buyer_legal_advisor').map((q) => q.scope)
+    expect(advisorScopes).toEqual(['law', 'legal', 'web'])
+    expect(queries.find((q) => q.scope === 'legal')!.includeDomains).toEqual(lists.legalPress)
   })
 
   it('searches by parties when the asset has no name', () => {
@@ -565,7 +569,7 @@ describe('table record', () => {
     const record = toRecord(deal, 'Nordhaven Capital acquired Wisła Tower.')
     expect(Object.keys(record)).toEqual([...TRANSACTION_KEYS])
     expect(Object.values(record).every((v) => typeof v === 'string')).toBe(true)
-    expect(record['Data ogłoszenia']).toBe('7.09.2026')
+    expect(record['Data ogłoszenia']).toBe('07.09.2026')
     expect(record['Deal value']).toBe('EUR 120 million')
     expect(record['Other parties involved']).toBe('Bank Hanzeatycki (lender)')
     expect(record['Seller legal advisor']).toBe('')

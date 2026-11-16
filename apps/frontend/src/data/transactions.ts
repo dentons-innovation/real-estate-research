@@ -47,7 +47,7 @@ export const COLUMNS: ColumnDef[] = [
   { key: 'zrodla', label: { pl: 'Źródła informacji', en: 'Sources' }, apiKey: 'Źródła informacji', kind: 'links', minWidth: 300 },
 ]
 
-/** Parses "7.07.2026" (D.MM.YYYY) into a sortable timestamp. */
+/** Parses "07.07.2026" (DD.MM.YYYY; a single-digit day is accepted too) into a sortable timestamp. */
 export function dateSortKey(value: string): number {
   const [d, m, y] = value.split('.').map(Number)
   if (!d || !m || !y) return Number.NEGATIVE_INFINITY

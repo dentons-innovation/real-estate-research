@@ -99,8 +99,12 @@ function CellContent({ column, row }: { column: ColumnDef; row: Transaction }) {
   }
 
   switch (column.kind) {
-    case 'date':
-      return <span className="text-[13px] font-semibold break-words [overflow-wrap:anywhere] text-den-xdark tabular-nums">{value}</span>
+    case 'date': {
+      // DD.MM.YYYY — pads a single-digit day or month should a source ever send one
+      const m = /^(\d{1,2})\.(\d{1,2})\.(\d{4})$/.exec(value.trim())
+      const shown = m ? `${m[1].padStart(2, '0')}.${m[2].padStart(2, '0')}.${m[3]}` : value
+      return <span className="text-[13px] font-semibold break-words [overflow-wrap:anywhere] text-den-xdark tabular-nums">{shown}</span>
+    }
     case 'value':
       return <span className="text-[13px] font-semibold break-words [overflow-wrap:anywhere] text-den-xdark">{value}</span>
     case 'status': {
@@ -143,7 +147,7 @@ function CellContent({ column, row }: { column: ColumnDef; row: Transaction }) {
                 </svg>
                 {/* breadcrumbs: host in colour, path segments muted; the whole line is the link */}
                 <span className="min-w-0 break-words [overflow-wrap:anywhere]">
-                  <span className="font-semibold group-hover/link:underline">{host}</span>
+                  <span className="font-semibold underline decoration-den-teal/40 underline-offset-2 group-hover/link:decoration-current">{host}</span>
                   {segments.map((segment, i) => (
                     <span key={`${i}-${segment}`} className="text-den-ink/55">
                       <span className="mx-1 text-den-ink/30">›</span>

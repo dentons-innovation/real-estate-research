@@ -161,6 +161,17 @@ a yearly run returns the most relevant deals of the year, not all of them.
 Splitting a long window into monthly slices, each with its own budget, would
 be the next step if fuller coverage is needed.
 
+### Looking for legal advisors
+
+Most trade-press reports name no law firm, so advisors come mainly from the
+deepening phase. A deal with a missing advisor gets up to three advisor
+searches out of its `MAX_QUERIES_PER_DEAL` (default 6): the law firms' own
+sites, the legal press (which credits every firm on a deal, including firms
+outside the list in `config/domains.ts`), and the open web. A firm is still
+assigned to a side only when a quote says whom it advised; otherwise it is
+listed under "Other legal advisors involved". An empty advisor field means no
+source found by these searches names one.
+
 ### Duplicate entries
 
 Names of the same asset differ between languages and sources ("drugi etap
@@ -179,6 +190,9 @@ Opoint is an optional accelerator, not a dependency. One pipeline, one switch:
 - **Server:** `OPOINT_ENABLED` in the backend environment. `false` (the current
   setting, because of the token budget) keeps Opoint out of every run; `/healthz`
   then reports `"opoint": "disabled"`. `true` with a token makes it `available`.
+- **Frontend:** `OPOINT_UI_ENABLED` in `apps/frontend/src/config.ts`. It is
+  `false` for now: the switch below is hidden and every run goes on Tavily
+  alone. Set it to `true` and rebuild to bring the switch back.
 - **Per run:** the "Opoint (media monitoring)" switch in the sidebar sends
   `useOpoint: true` with the start request. It is off at every page load.
   While the server reports Opoint as unavailable, flipping the switch only shows
@@ -347,7 +361,10 @@ are the answer to both.
   sidebar triggers the same state by hand.
 - Table columns and Excel (`.xlsx`) export: `apps/frontend/src/data/transactions.ts`,
   `apps/frontend/src/lib/xlsx.ts`. The export library is loaded on the first
-  click, not with the page.
+  click, not with the page. Dates are `DD.MM.YYYY` in the table and real
+  Excel dates in the same format in the workbook. Every source is a clickable
+  link; in the workbook each one gets a column of its own ("Źródło 1",
+  "Źródło 2", …), because an Excel cell holds a single hyperlink.
 - Research periods: `apps/frontend/src/lib/range.ts`.
 - Timeline phases: `apps/frontend/src/lib/phases.ts`.
 

@@ -21,5 +21,12 @@ export const api = {
   poll: (jobId: string, after: number) => `${API_BASE_URL}${API_PATHS.poll}?id=${encodeURIComponent(jobId)}&after=${after}`,
 }
 
+/**
+ * The "Opoint (media monitoring)" switch in the sidebar. false: the switch is
+ * hidden and every run goes on Tavily + AI alone; the backend is not touched.
+ * Set to true to bring the switch back.
+ */
+export const OPOINT_UI_ENABLED = false
+
 /** Backend address as shown in the log console. */
 export const API_LABEL: string = `${API_BASE_URL || window.location.origin}${API_PATHS.start}`
