@@ -22,6 +22,9 @@ import { msg } from './messages'
 
 const STEPS_PER_DEAL = 3
 
+/** One query covers all law firm sites at once, so it needs more room than a single-site search. */
+const LAW_SITE_RESULTS = 15
+
 /** Does this page talk about the deal at all? Decided before any model call. */
 export function mentionsDeal(deal: MergedDeal, pageText: string): boolean {
   const tokens = tokenize(pageText)
@@ -97,7 +100,7 @@ export async function runDeepening(deals: MergedDeal[], ctx: PipelineContext): P
       queries.map(async (q) => {
         try {
           // no date filter: law firm announcements often follow the press by weeks
-          results.push(...(await ctx.tavily.search({ query: q.query, topic: 'general', includeDomains: q.includeDomains, excludeDomains: q.includeDomains ? undefined : ctx.lists.excluded, maxResults: 8, rawContent: true, purpose: 'deepening', signal: ctx.signal })))
+          results.push(...(await ctx.tavily.search({ query: q.query, topic: 'general', includeDomains: q.includeDomains, excludeDomains: q.includeDomains ? undefined : ctx.lists.excluded, maxResults: q.scope === 'law' ? LAW_SITE_RESULTS : 8, rawContent: true, purpose: 'deepening', signal: ctx.signal })))
         } catch (err) {
           if (isAbort(err) || ctx.signal.aborted) throw err
         }

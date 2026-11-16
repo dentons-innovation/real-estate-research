@@ -205,10 +205,10 @@ export function unixSeconds(iso: string, endOfDay = false): number {
   return Math.floor(Date.parse(`${iso}T${endOfDay ? '23:59:59' : '00:00:00'}Z`) / 1000)
 }
 
-/** YYYY-MM-DD → D.MM.YYYY, the format the table sorts on. */
+/** YYYY-MM-DD → DD.MM.YYYY, the format the table shows and sorts on. */
 export function toPlDate(iso: string | null): string {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso ?? '')
-  return m ? `${Number(m[3])}.${m[2]}.${m[1]}` : ''
+  return m ? `${m[3]}.${m[2]}.${m[1]}` : ''
 }
 
 const MONTHS_PL = ['styczeń', 'luty', 'marzec', 'kwiecień', 'maj', 'czerwiec', 'lipiec', 'sierpień', 'wrzesień', 'październik', 'listopad', 'grudzień']

@@ -12,6 +12,8 @@ interface SidebarProps {
   onToggleAvatar: () => void
   showLog: boolean
   onToggleLog: () => void
+  /** False hides the Opoint switch altogether (OPOINT_UI_ENABLED in config.ts). */
+  showOpoint: boolean
   /** Opoint plugged into the next run. */
   useOpoint: boolean
   /** False when the backend reports Opoint as switched off or not configured — the switch then only shows a notice. */
@@ -33,6 +35,7 @@ export default function Sidebar({
   onToggleAvatar,
   showLog,
   onToggleLog,
+  showOpoint,
   useOpoint,
   opointAvailable,
   onToggleOpoint,
@@ -199,6 +202,7 @@ export default function Sidebar({
       </div>
 
       {/* Sources — Opoint plug-in switch. A run never changes mid-flight, so the switch is locked while searching. */}
+      {showOpoint && (
       <div>
         <p className="font-mono text-[10px] tracking-[0.28em] text-white/40 uppercase">{t.sourcesSection}</p>
         <button
@@ -261,6 +265,7 @@ export default function Sidebar({
           </div>
         </div>
       </div>
+      )}
 
       {/* Action */}
       <div className="mt-auto flex flex-col gap-3 pt-4">

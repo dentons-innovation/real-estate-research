@@ -10,7 +10,7 @@ import { startResearchStream, type ResearchStreamHandle, type ResearchEventMeta 
 import { fetchOpointAvailability, type OpointAvailability } from './lib/health'
 import { PHASES, LAST_PHASE, resolvePhase, type MissionState } from './lib/phases'
 import { DEFAULT_RANGE, type ResearchRange } from './lib/range'
-import { API_LABEL } from './config'
+import { API_LABEL, OPOINT_UI_ENABLED } from './config'
 import { useI18n } from './lib/i18n'
 import type { LogEntry } from './components/BackendLog'
 
@@ -71,6 +71,7 @@ export default function App({ onAuthError }: AppProps) {
 
   // ask the backend once whether Opoint can be plugged in (the switch re-checks on every click)
   useEffect(() => {
+    if (!OPOINT_UI_ENABLED) return
     let cancelled = false
     void fetchOpointAvailability().then((status) => {
       if (!cancelled) setOpointAvailability(status)
@@ -144,7 +145,7 @@ export default function App({ onAuthError }: AppProps) {
     streamRef.current?.abort()
     streamRef.current = startResearchStream({
       range,
-      useOpoint,
+      useOpoint: OPOINT_UI_ENABLED && useOpoint,
       onAuthError: () => {
         runActiveRef.current = false
         streamRef.current = null
@@ -285,6 +286,7 @@ export default function App({ onAuthError }: AppProps) {
         onToggleAvatar={handleToggleAvatar}
         showLog={showLog}
         onToggleLog={handleToggleLog}
+        showOpoint={OPOINT_UI_ENABLED}
         useOpoint={useOpoint}
         opointAvailable={opointAvailability === 'available'}
         onToggleOpoint={handleToggleOpoint}
