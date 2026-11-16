@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
+import type { ResearchRange } from './range'
 
 /**
  * App bilingualism (PL/EN).
@@ -63,6 +64,10 @@ export interface UIStrings {
   opointUnavailable: string
   /** Same toast when the backend has no Opoint token at all. */
   opointNotConfigured: string
+  // Research period
+  rangeSection: string
+  rangeLabels: Record<ResearchRange, string>
+  rangeHint: Record<ResearchRange, string>
   stopResearch: string
   mockError: string
   stopping: string
@@ -103,10 +108,11 @@ export interface UIStrings {
   // Results table
   resultsEyebrow: string
   resultsTitle: string
-  /** Fixed research window shown above the table (backend always searches 30 days). */
-  resultsRange: string
+  /** Research window shown above the table, per period of the run. */
+  resultsRange: Record<ResearchRange, string>
   resultsMarket: string
-  exportCsv: string
+  exportXlsx: string
+  exportFailed: string
   tableHint: string
   notDisclosed: string
   noResults: string
@@ -135,6 +141,14 @@ export const UI: Record<Lang, UIStrings> = {
     opointHintOn: 'Włączony: artykuły z Opoint dołączą do wyników Tavily.',
     opointUnavailable: 'Opoint jest na razie niedostępny z powodu ograniczenia tokenów.',
     opointNotConfigured: 'Opoint nie jest skonfigurowany na tym serwerze.',
+    rangeSection: 'Okres',
+    rangeLabels: { '30d': '1 mies.', '90d': '3 mies.', '180d': '6 mies.', '365d': '1 rok' },
+    rangeHint: {
+      '30d': 'Transakcje ogłoszone w ostatnich 30 dniach.',
+      '90d': 'Transakcje ogłoszone w ostatnich 3 miesiącach.',
+      '180d': 'Transakcje ogłoszone w ostatnich 6 miesiącach.',
+      '365d': 'Transakcje ogłoszone w ostatnich 12 miesiącach.',
+    },
     stopResearch: 'Zatrzymaj research',
     mockError: 'Symuluj błąd (Mock Error)',
     stopping: 'Przerywanie…',
@@ -148,7 +162,7 @@ export const UI: Record<Lang, UIStrings> = {
     idleTitleAccent: 'nieruchomości',
     idleDescription:
       'Agent AI przeszukuje komunikaty prasowe, serwisy branżowe i rejestry, a znalezione transakcje zestawia w tabelę gotową do analizy i eksportu.',
-    idleCapabilities: ['źródła z linkami', 'eksport do CSV'],
+    idleCapabilities: ['źródła z linkami', 'eksport do Excela'],
     idleHintPre: 'Aby rozpocząć, kliknij',
     idleHintButton: '„Rozpocznij research”',
     missionFailed: 'Research zakończony błędem',
@@ -171,9 +185,10 @@ export const UI: Record<Lang, UIStrings> = {
     logStatusError: 'Błąd backendu',
     resultsEyebrow: 'Wyniki researchu',
     resultsTitle: 'Transakcje',
-    resultsRange: 'Ostatnie 30 dni',
+    resultsRange: { '30d': 'Ostatnie 30 dni', '90d': 'Ostatnie 3 miesiące', '180d': 'Ostatnie 6 miesięcy', '365d': 'Ostatnie 12 miesięcy' },
     resultsMarket: 'rynek nieruchomości, Polska',
-    exportCsv: 'Eksportuj do CSV',
+    exportXlsx: 'Eksportuj do Excela',
+    exportFailed: 'Nie udało się wygenerować pliku Excel. Spróbuj ponownie.',
     tableHint: 'Kliknij nagłówek kolumny, aby sortować · przewiń tabelę w poziomie, aby zobaczyć wszystkie kolumny',
     notDisclosed: 'nie ujawniono',
     noResults: 'W wybranym okresie nie znaleziono transakcji potwierdzonych w źródłach.',
@@ -205,6 +220,14 @@ export const UI: Record<Lang, UIStrings> = {
     opointHintOn: 'On: Opoint articles are added to the Tavily results.',
     opointUnavailable: 'Opoint is currently unavailable due to a token limit.',
     opointNotConfigured: 'Opoint is not configured on this server.',
+    rangeSection: 'Period',
+    rangeLabels: { '30d': '1 mo', '90d': '3 mo', '180d': '6 mo', '365d': '1 yr' },
+    rangeHint: {
+      '30d': 'Transactions announced in the last 30 days.',
+      '90d': 'Transactions announced in the last 3 months.',
+      '180d': 'Transactions announced in the last 6 months.',
+      '365d': 'Transactions announced in the last 12 months.',
+    },
     stopResearch: 'Stop research',
     mockError: 'Simulate error (Mock Error)',
     stopping: 'Stopping…',
@@ -218,7 +241,7 @@ export const UI: Record<Lang, UIStrings> = {
     idleTitleAccent: 'real estate market',
     idleDescription:
       'An AI agent scans press releases, industry portals and registers, then compiles the transactions it finds into a table ready for analysis and export.',
-    idleCapabilities: ['linked sources', 'CSV export'],
+    idleCapabilities: ['linked sources', 'Excel export'],
     idleHintPre: 'To begin, click',
     idleHintButton: '“Start research”',
     missionFailed: 'Research ended with an error',
@@ -241,9 +264,10 @@ export const UI: Record<Lang, UIStrings> = {
     logStatusError: 'Backend error',
     resultsEyebrow: 'Research results',
     resultsTitle: 'Transactions',
-    resultsRange: 'Last 30 days',
+    resultsRange: { '30d': 'Last 30 days', '90d': 'Last 3 months', '180d': 'Last 6 months', '365d': 'Last 12 months' },
     resultsMarket: 'real estate market, Poland',
-    exportCsv: 'Export to CSV',
+    exportXlsx: 'Export to Excel',
+    exportFailed: 'The Excel file could not be generated. Please try again.',
     tableHint: 'Click a column header to sort · scroll the table horizontally to see all columns',
     notDisclosed: 'not disclosed',
     noResults: 'No transactions confirmed by sources were found in the selected period.',

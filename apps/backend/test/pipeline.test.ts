@@ -4,16 +4,22 @@ import { createMockClients, type MockOptions } from '../src/clients/mock/mockCli
 import { buildDomainLists } from '../src/config/domains'
 import type { PipelineContext } from '../src/pipeline/context'
 import { runResearch } from '../src/pipeline/orchestrator'
-import type { AuditEntry } from '../src/types'
+import { verifyExtractedDeal } from '../src/extraction/extractArticle'
+import type { ExtractedDeal } from '../src/extraction/schema'
+import type { Article, AuditEntry } from '../src/types'
+import { prepareText } from '../src/verify/evidence'
 
 const WINDOW = { from: '2026-08-30', to: '2026-09-29', days: 30 }
 
-async function run(options: MockOptions = {}, overrides: Partial<PipelineContext['settings']> = {}) {
+/** Same end date, 180 days back: the fixture deal closed 100 days before the end falls inside. */
+const HALF_YEAR = { from: '2026-04-02', to: '2026-09-29', days: 180 }
+
+async function run(options: MockOptions = {}, overrides: Partial<PipelineContext['settings']> = {}, window = WINDOW) {
   const clients = createMockClients(0, options)
   const events: ProgressEvent[] = []
   const audit: AuditEntry[] = []
   const outcome = await runResearch({
-    window: WINDOW,
+    window,
     lists: buildDomainLists(),
     opoint: clients.opoint,
     tavily: clients.tavily,
@@ -93,6 +99,78 @@ describe('research pipeline (mock clients)', () => {
     expect(text).not.toContain('Hotel Sudecki')
     expect(audit.some((a) => a.kind === 'deal_dropped' && a.reason === 'lease_only')).toBe(true)
     expect(audit.some((a) => a.kind === 'deal_dropped' && a.reason === 'outside_window')).toBe(true)
+  })
+
+  it('keeps an older deal when the window is long enough to contain it', async () => {
+    const { outcome, audit, byAsset } = await run({}, {}, HALF_YEAR)
+    // closed 100 days before the window end: outside 30 days, inside 180 — and not cut by the 60-day age limit
+    const hotel = byAsset('Hotel Sudecki')!
+    expect(hotel).toBeDefined()
+    expect(hotel['Data ogłoszenia']).toBe('21.06.2026')
+    expect(hotel['Buyer / inwestor']).toBe('Helios Hospitality')
+    expect(audit.some((a) => a.kind === 'deal_dropped' && (a.reason === 'too_old' || a.reason === 'outside_window'))).toBe(false)
+    expect(outcome.result.meta.window).toEqual(HALF_YEAR)
+    // the deals of the last month are all still there
+    expect(outcome.result.transactions.map((r) => r['Deal/asset']).sort()).toEqual([
+      'Bursztyn Park, Gdańsk',
+      'Galeria Bursztynowa, Gdańsk',
+      'Hotel Sudecki, Wrocław',
+      'Logistic Hub Stryków',
+      'Wisła Tower',
+    ])
+  })
+
+  it('does not take the year of a date from the model in a long window', () => {
+    // the article says "7 lipca" without a year; the model answers 2026-07-07
+    const extracted: ExtractedDeal = {
+      asset_name: 'Odra Business Park',
+      asset_quote: 'Fundusz Arcturus Real Estate kupił biurowiec Odra Business Park we Wrocławiu.',
+      city: 'Wrocław',
+      in_poland: true,
+      is_lease_only: false,
+      is_market_report: false,
+      transaction_type: 'acquisition',
+      description_en: 'Arcturus Real Estate acquired Odra Business Park in Wrocław.',
+      announcement_date: '2026-07-07',
+      announcement_date_quote: 'Umowę sprzedaży podpisano 7 lipca.',
+      buyer: null,
+      seller: null,
+      other_parties: [],
+      deal_value: null,
+      buyer_legal_advisor: null,
+      seller_legal_advisor: null,
+      other_legal_advisors: [],
+      status: 'signed',
+      sector: 'office',
+    }
+    const verify = (publishedAt: string | null, longWindow: boolean) => {
+      const article: Article = {
+        url: 'https://tradepress.example/news/odra-business-park',
+        title: 'Arcturus kupił Odra Business Park',
+        text: 'Fundusz Arcturus Real Estate kupił biurowiec Odra Business Park we Wrocławiu. Umowę sprzedaży podpisano 7 lipca. Budynek oferuje 20 tys. mkw. powierzchni.',
+        publishedAt,
+        origin: 'tavily',
+        lane: 'sales',
+      }
+      const audit: AuditEntry[] = []
+      const candidate = verifyExtractedDeal(extracted, article, prepareText(`${article.title}\n${article.text}`), { lists: buildDomainLists(), audit, longWindow })!
+      return { candidate, audit }
+    }
+
+    // published a few days later in the same year: the date stands
+    expect(verify('2026-07-10', true).candidate).toMatchObject({ announcementDate: '2026-07-07', dateBasis: 'quote' })
+
+    // the article is a year old: "7 lipca" is not July 2026 — the publication date is used instead
+    const old = verify('2025-07-10', true)
+    expect(old.candidate).toMatchObject({ announcementDate: '2025-07-10', dateBasis: 'published' })
+    expect(old.audit.some((a) => a.kind === 'field_rejected' && a.field === 'announcement_date' && a.value === '2026-07-07')).toBe(true)
+
+    // an undated page cannot confirm the year: the deal stays undated and goes to deepening
+    expect(verify(null, true).candidate).toMatchObject({ announcementDate: null, dateBasis: null })
+
+    // one-month window: behaviour unchanged, the stated date is accepted as before
+    expect(verify(null, false).candidate).toMatchObject({ announcementDate: '2026-07-07', dateBasis: 'quote' })
+    expect(verify('2025-07-10', false).candidate).toMatchObject({ announcementDate: '2026-07-07', dateBasis: 'quote' })
   })
 
   it('dates a deal found on an undated page from its follow-up article', async () => {

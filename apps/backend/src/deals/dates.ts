@@ -168,6 +168,35 @@ export function tooOld(earliest: string, window: ResearchWindow, maxDays: number
   return Date.parse(window.to) - Date.parse(earliest) > maxDays * DAY_MS
 }
 
+/** Window length the configured age limit (MAX_DEAL_AGE_DAYS) is calibrated for. */
+const BASE_WINDOW_DAYS = 30
+
+/**
+ * Age limit for a given window. The configured limit holds for windows of up
+ * to 30 days; a longer window pushes it back by the extra days, otherwise the
+ * limit would cut off the older part of the window itself.
+ */
+export function maxAgeForWindow(window: ResearchWindow, configuredDays: number): number {
+  return configuredDays + Math.max(0, window.days - BASE_WINDOW_DAYS)
+}
+
+/** Windows longer than this get the stricter year check on dates quoted without a year. */
+export const LONG_WINDOW_DAYS = 31
+
+/** How far before its article's publication a date quoted without a year may lie. */
+const MAX_YEARLESS_LAG_DAYS = 183
+
+/**
+ * A date whose quote does not print the year ("7 lipca") got its year from the
+ * model. It is trusted only when the article's publication date confirms it:
+ * not later than the publication, and not more than half a year before it.
+ */
+export function yearConfirmed(iso: string, quote: string, publishedAt: string | null): boolean {
+  if (datesInText(quote).includes(iso)) return true
+  if (!publishedAt) return false
+  return iso <= publishedAt && daysBetween(iso, publishedAt) <= MAX_YEARLESS_LAG_DAYS
+}
+
 export function daysBetween(a: string, b: string): number {
   return Math.abs(Math.round((Date.parse(a) - Date.parse(b)) / DAY_MS))
 }

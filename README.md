@@ -2,8 +2,9 @@
 
 A research tool for transactions on the Polish commercial real estate market,
 built for the Dentons marketing team. It searches the press and law firm
-announcements for the last 30 days and returns a table of deals: parties,
-value, legal advisors, status, sector and sources.
+announcements for a chosen period (the last month, 3 months, 6 months or
+year) and returns a table of deals: parties, value, legal advisors, status,
+sector and sources.
 
 The rule the backend is built around: **a field appears in the table only if a
 quote supporting it was found, by code, in the text of a source article.**
@@ -80,7 +81,7 @@ Tavily credits as the discovery phase of one research run.
 
 | Step | What happens | Timeline phase |
 |---|---|---|
-| Start | Job created, window resolved (30 days) | `init` |
+| Start | Job created, window resolved (30, 90, 180 or 365 days, as chosen in the sidebar) | `init` |
 | Opoint | Only when plugged in (see below): articles from the stored search for the window | `research_launch` |
 | Tavily | ~42 natural-language queries in three lanes (sales and acquisitions, financing and JV, law firm announcements) over the open web, the trade press, the legal press and the law firms' own sites | `research_launch` |
 | Prefilter | Unusable pages (profiles, practice pages, PDFs, listings) and irrelevant ones dropped in code, best 120 kept | `research_1` |
@@ -133,7 +134,32 @@ excluded by URL path before any model call; they describe careers, not news.
   days before the end of the window. A sale first reported in June and repeated
   in a September results note is not a September deal. The audit lists such
   deals under `too_old`. The rule runs before and after deepening, because
-  follow-up sources can reveal an earlier report.
+  follow-up sources can reveal an earlier report. The configured value holds
+  for windows of up to 30 days; a longer window extends it by the extra days
+  (90 days → 120, 180 → 210, 365 → 395), otherwise the limit would cut off the
+  older part of the window itself.
+
+### Longer periods
+
+The period is chosen in the sidebar: 1 month (`30d`, the default), 3 months
+(`90d`), 6 months (`180d`) or 1 year (`365d`). What changes with it:
+
+- The window sent to Tavily as the date filter of every dated query, and the
+  window Opoint is asked for.
+- The window enforced in code on every deal, and the age limit above.
+- One extra check for windows longer than a month. A date quoted without its
+  year ("podpisano 7 lipca") gets its year from the model; in a 30-day window
+  a wrong year falls outside the window, in a yearly one it could pass. Such
+  a date is therefore accepted only when the article's publication date
+  confirms it (not later than the publication, at most half a year before
+  it); otherwise the publication date is used, or the deal goes to deepening
+  undated. The audit lists the rejected date under `announcement_date`.
+
+What does not change is the budget: the same ~42 queries, 120 articles and 15
+deepened deals cover the whole period. A one-month run is exactly what it was;
+a yearly run returns the most relevant deals of the year, not all of them.
+Splitting a long window into monthly slices, each with its own budget, would
+be the next step if fuller coverage is needed.
 
 ### Duplicate entries
 
@@ -198,7 +224,7 @@ All endpoints except the health check require `Authorization: Bearer <password>`
 |---|---|
 | `GET /healthz` | Health check |
 | `POST /api/auth/check` | 204 if the password is accepted |
-| `POST /api/research/start` | Body `{range?: "30d", from?, to?}` → `{jobId, window}` |
+| `POST /api/research/start` | Body `{range?: "30d" \| "90d" \| "180d" \| "365d", from?, to?, useOpoint?}` → `{jobId, window}` |
 | `GET /api/research/stream?id&after` | Server-Sent Events from event number `after` |
 | `GET /api/research/poll?id&after` | The same events as JSON: `{lines, done, error}` |
 | `POST /api/research/abort` | Body `{id}`; stops the job |
@@ -319,14 +345,20 @@ are the answer to both.
 - On a failure the screen does not switch: the robot panics where it stopped
   and the error is printed in red in the console. "Simulate error" in the
   sidebar triggers the same state by hand.
-- Table columns and CSV export: `apps/frontend/src/data/transactions.ts`,
-  `apps/frontend/src/lib/csv.ts`.
+- Table columns and Excel (`.xlsx`) export: `apps/frontend/src/data/transactions.ts`,
+  `apps/frontend/src/lib/xlsx.ts`. The export library is loaded on the first
+  click, not with the page.
+- Research periods: `apps/frontend/src/lib/range.ts`.
 - Timeline phases: `apps/frontend/src/lib/phases.ts`.
 
 ## Known limits
 
-- The research window is fixed at 30 days in the UI. The backend accepts
-  `range` up to `MAX_RANGE_DAYS` and explicit `from` / `to` dates.
+- The UI offers four periods (1, 3, 6 and 12 months). The backend accepts any
+  `range` up to `MAX_RANGE_DAYS` (default 365) and explicit `from` / `to`
+  dates. A deployment that sets `MAX_RANGE_DAYS` below 365 rejects the longer
+  periods with `bad_window`.
+- The search budget does not grow with the period (see "Longer periods"), so
+  long periods are covered less densely than one month.
 - With `STRICT_WINDOW=true` a deal needs a date: one written in an article, or
   a publication date supplied by the search provider or read from the URL.
   Deals without any date are dropped.

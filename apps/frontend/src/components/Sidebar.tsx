@@ -1,6 +1,7 @@
 import type { Phase } from '../App'
 import logo from '../dentons_logo.png'
 import { useI18n } from '../lib/i18n'
+import { RANGES, type ResearchRange } from '../lib/range'
 
 interface SidebarProps {
   phase: Phase
@@ -18,6 +19,9 @@ interface SidebarProps {
   onToggleOpoint: () => void
   /** Toast text under the Opoint switch; null when hidden. */
   opointNotice: string | null
+  /** Period the next run will cover. */
+  range: ResearchRange
+  onRangeChange: (range: ResearchRange) => void
 }
 
 export default function Sidebar({
@@ -33,6 +37,8 @@ export default function Sidebar({
   opointAvailable,
   onToggleOpoint,
   opointNotice,
+  range,
+  onRangeChange,
 }: SidebarProps) {
   const { lang, setLang, t } = useI18n()
   const searching = phase === 'searching'
@@ -160,6 +166,36 @@ export default function Sidebar({
             ))}
           </div>
         </div>
+      </div>
+
+      {/* Research period — fixed for a run, so locked while searching like the Opoint switch. */}
+      <div>
+        <p id="range-label" className="font-mono text-[10px] tracking-[0.28em] text-white/40 uppercase">{t.rangeSection}</p>
+        <div
+          role="radiogroup"
+          aria-labelledby="range-label"
+          data-testid="range-select"
+          className="mt-3 grid grid-cols-4 overflow-hidden rounded-lg border border-white/15 bg-white/5"
+        >
+          {RANGES.map((value) => (
+            <button
+              key={value}
+              type="button"
+              role="radio"
+              aria-checked={range === value}
+              disabled={searching}
+              onClick={() => onRangeChange(value)}
+              className={`cursor-pointer px-1 py-2.5 text-[12.5px] font-medium whitespace-nowrap transition-colors focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 ${
+                range === value
+                  ? 'bg-den-light text-white'
+                  : 'text-white/55 hover:bg-white/10 hover:text-white/85 focus-visible:bg-white/10'
+              }`}
+            >
+              {t.rangeLabels[value]}
+            </button>
+          ))}
+        </div>
+        <p className="mt-1.5 text-[11px] leading-snug text-white/35">{t.rangeHint[range]}</p>
       </div>
 
       {/* Sources — Opoint plug-in switch. A run never changes mid-flight, so the switch is locked while searching. */}

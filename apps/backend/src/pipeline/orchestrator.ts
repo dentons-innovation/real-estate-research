@@ -1,5 +1,5 @@
 import type { ResultEvent } from '@re/shared'
-import { inWindow, tooOld } from '../deals/dates'
+import { inWindow, maxAgeForWindow, tooOld } from '../deals/dates'
 import { clusterCandidates, clusterMergedDeals } from '../deals/dedup'
 import { mergeCandidates, mergeMergedDeals } from '../deals/merge'
 import type { JobAudit, MergedDeal } from '../types'
@@ -23,8 +23,9 @@ export interface ResearchOutcome {
 /**
  * The time window is enforced here, in code — never left to a search engine or
  * the model. Two rules: the deal's date lies inside the window, and no report
- * of it is older than MAX_DEAL_AGE_DAYS — a transaction first reported months
- * ago and merely mentioned again now is not news.
+ * of it is older than MAX_DEAL_AGE_DAYS (extended for windows longer than 30
+ * days, see maxAgeForWindow) — a transaction first reported months before the
+ * window and merely mentioned again now is not news.
  *
  * Runs twice: leniently before deepening (an undated deal may still get its
  * date from a follow-up article) and strictly after it.
@@ -50,14 +51,15 @@ function enforceWindow(deals: MergedDeal[], ctx: PipelineContext, strict: boolea
  * because follow-up sources can reveal an earlier report.
  */
 function dropStale(deals: MergedDeal[], ctx: PipelineContext): MergedDeal[] {
+  const maxAgeDays = maxAgeForWindow(ctx.window, ctx.settings.maxDealAgeDays)
   return deals.filter((deal) => {
-    if (!deal.earliestDate || !tooOld(deal.earliestDate, ctx.window, ctx.settings.maxDealAgeDays)) return true
+    if (!deal.earliestDate || !tooOld(deal.earliestDate, ctx.window, maxAgeDays)) return true
     ctx.audit.push({
       kind: 'deal_dropped',
       reason: 'too_old',
       deal: deal.assetName,
       url: deal.sources[0]?.url,
-      detail: `najstarszy ślad transakcji: ${deal.earliestDate}, limit ${ctx.settings.maxDealAgeDays} dni przed ${ctx.window.to}`,
+      detail: `najstarszy ślad transakcji: ${deal.earliestDate}, limit ${maxAgeDays} dni przed ${ctx.window.to}`,
     })
     return false
   })

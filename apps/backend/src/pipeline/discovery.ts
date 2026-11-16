@@ -1,5 +1,6 @@
 import type { TavilyResult } from '../clients/tavily'
 import { inDomainList } from '../config/domains'
+import { LONG_WINDOW_DAYS } from '../deals/dates'
 import { canonicalUrl, isExcludedPath, isPdfUrl, MIN_ARTICLE_CHARS, prepareArticleText } from '../extraction/articleText'
 import { extractArticle } from '../extraction/extractArticle'
 import { classifyLane, prefilterArticles } from '../extraction/prefilter'
@@ -163,7 +164,7 @@ export async function runDiscovery(ctx: PipelineContext): Promise<DiscoveryResul
   await Promise.all(
     kept.map(async (article) => {
       try {
-        const outcome = await extractArticle(article, ctx.llm, { lists: ctx.lists, audit: ctx.audit }, ctx.signal)
+        const outcome = await extractArticle(article, ctx.llm, { lists: ctx.lists, audit: ctx.audit, longWindow: ctx.window.days > LONG_WINDOW_DAYS }, ctx.signal)
         candidates.push(...outcome.candidates)
       } catch (err) {
         if (isAbort(err) || ctx.signal.aborted) throw err

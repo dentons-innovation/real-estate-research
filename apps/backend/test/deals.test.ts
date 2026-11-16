@@ -2,7 +2,7 @@ import { TRANSACTION_KEYS } from '@re/shared'
 import { describe, expect, it } from 'vitest'
 import { buildDomainLists } from '../src/config/domains'
 import { TAVILY_MAX_QUERY_CHARS } from '../src/clients/tavily'
-import { dateFromUrl, inWindow, monthEndFromUrl, monthsOfWindow, resolveWindow, tooOld, toPlDate, WindowError } from '../src/deals/dates'
+import { dateFromUrl, inWindow, maxAgeForWindow, monthEndFromUrl, monthsOfWindow, resolveWindow, tooOld, toPlDate, WindowError, yearConfirmed } from '../src/deals/dates'
 import { isExcludedPath } from '../src/extraction/articleText'
 import { prefilterArticles } from '../src/extraction/prefilter'
 import { LAW_CHUNK_SIZE } from '../src/queries/discoveryQueries'
@@ -129,6 +129,36 @@ describe('research window', () => {
     expect(tooOld('2026-08-01', w, 60)).toBe(false)
     expect(tooOld('2026-07-31', w, 60)).toBe(false)
     expect(tooOld('2026-07-30', w, 60)).toBe(true)
+  })
+
+  it('resolves the periods offered in the app', () => {
+    const year = { defaultDays: 30, maxDays: 365 }
+    expect(resolveWindow({ range: '30d' }, year, now)).toEqual({ from: '2026-08-30', to: '2026-09-29', days: 30 })
+    expect(resolveWindow({ range: '90d' }, year, now)).toEqual({ from: '2026-07-01', to: '2026-09-29', days: 90 })
+    expect(resolveWindow({ range: '180d' }, year, now)).toEqual({ from: '2026-04-02', to: '2026-09-29', days: 180 })
+    expect(resolveWindow({ range: '365d' }, year, now)).toEqual({ from: '2025-09-29', to: '2026-09-29', days: 365 })
+    expect(() => resolveWindow({ range: '366d' }, year, now)).toThrow(WindowError)
+  })
+
+  it('extends the age limit only for windows longer than a month', () => {
+    const w = (days: number) => ({ from: '2026-01-01', to: '2026-09-29', days })
+    expect(maxAgeForWindow(w(7), 60)).toBe(60)
+    expect(maxAgeForWindow(w(30), 60)).toBe(60)
+    expect(maxAgeForWindow(w(90), 60)).toBe(120)
+    expect(maxAgeForWindow(w(180), 60)).toBe(210)
+    expect(maxAgeForWindow(w(365), 60)).toBe(395)
+  })
+
+  it('trusts a date quoted without its year only when the publication date confirms it', () => {
+    // the year is printed in the quote: nothing else is needed
+    expect(yearConfirmed('2026-07-07', 'Umowę podpisano 7 lipca 2026 r.', null)).toBe(true)
+    // no year in the quote: the publication date decides
+    expect(yearConfirmed('2026-07-07', 'Umowę podpisano 7 lipca.', '2026-07-10')).toBe(true)
+    expect(yearConfirmed('2026-07-07', 'Umowę podpisano 7 lipca.', null)).toBe(false)
+    // the article is from 2025 — "7 lipca" cannot be July 2026
+    expect(yearConfirmed('2026-07-07', 'Umowę podpisano 7 lipca.', '2025-07-10')).toBe(false)
+    // nor a date long before the article
+    expect(yearConfirmed('2025-07-07', 'Umowę podpisano 7 lipca.', '2026-07-10')).toBe(false)
   })
 })
 
